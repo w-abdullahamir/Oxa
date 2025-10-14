@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/Colors";
 import { API_ENDPOINTS, BASE_URL } from "@/constants/Endpoints";
+import { useSocket } from "@/hooks/SocketContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserData } from "@/hooks/UserDataContext";
 import axios from "axios";
@@ -29,6 +30,7 @@ export default function HomeScreen() {
 	const [loading, setLoading] = useState(false);
 	const { userData, setUserData } = useUserData();
 	const [contacts, setContacts] = useState<Contacts>([]);
+	const { initSocket } = useSocket();
 
 	useEffect(() => {
 		if (token === null) return;
@@ -63,6 +65,12 @@ export default function HomeScreen() {
 
 		fetchUserData();
 	}, [token]);
+
+	useEffect(() => {
+		if (userData?.userId) {
+			initSocket({ id: String(userData.userId) });
+		}
+	}, [userData]);
 
 	const handleLogout = async () => {
 		const res = await logout();

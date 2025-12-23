@@ -1,13 +1,13 @@
-import { BASE_URL } from "@/constants/Endpoints";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useRef, useState } from "react";
 import io, { Socket } from "socket.io-client";
+import { BASE_URL } from "../constants/Endpoints"; // adjust if your endpoints path differs
 
-interface SocketContextType {
+type SocketContextType = {
 	socket: Socket | null;
 	isConnected: boolean;
-	initSocket: (user: { id: string }) => void;
+	initSocket: (opts: { userId: string; token?: string }) => void;
 	disconnectSocket: () => void;
-}
+};
 
 const SocketContext = createContext<SocketContextType>({
 	socket: null,
@@ -21,25 +21,51 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
+	const socketRef = useRef<Socket | null>(null);
 
-	const initSocket = (user: { id: string }) => {
-		if (socket) return; // prevent re-init
+	const initSocket = ({
+		userId,
+		token,
+	}: {
+		userId: string;
+		token?: string;
+	}) => {
+		if (socketRef.current) return; // already inited
+
 		const newSocket = io(BASE_URL, {
 			transports: ["websocket"],
-			query: { userId: user.id },
+			auth: token ? { token } : undefined,
+			query: { userId },
+			reconnection: true,
 		});
 
+		socketRef.current = newSocket;
 		setSocket(newSocket);
 
-		newSocket.on("connect", () => setIsConnected(true));
-		newSocket.on("disconnect", () => setIsConnected(false));
-		newSocket.on("connect_error", (err) =>
-			console.log("Socket error:", err.message)
-		);
+		newSocket.on("connect", () => {
+			setIsConnected(true);
+			console.log("Global socket connected:", newSocket.id);
+			// register on server once at login
+			if (userId) newSocket.emit("register", { userId });
+		});
+
+		newSocket.on("disconnect", () => {
+			setIsConnected(false);
+			console.log("Global socket disconnected");
+		});
+
+		newSocket.on("connect_error", (err: any) => {
+			console.warn("Socket connect_error:", err?.message ?? err);
+		});
 	};
 
 	const disconnectSocket = () => {
-		socket?.disconnect();
+		try {
+			socketRef.current?.disconnect();
+		} catch (e) {
+			/* ignore */
+		}
+		socketRef.current = null;
 		setSocket(null);
 		setIsConnected(false);
 	};

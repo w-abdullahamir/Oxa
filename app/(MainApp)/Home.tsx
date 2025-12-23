@@ -68,7 +68,10 @@ export default function HomeScreen() {
 
 	useEffect(() => {
 		if (userData?.userId) {
-			initSocket({ id: String(userData.userId) });
+			initSocket({
+				userId: String(userData.userId),
+				token: token ?? undefined,
+			});
 		}
 	}, [userData]);
 

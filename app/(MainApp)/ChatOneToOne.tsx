@@ -1,4 +1,7 @@
-import { BASE_URL, ICE_SERVERS } from "@/constants/Endpoints";
+// Updated ChatOneToOne.tsx
+import { ICE_SERVERS } from "@/constants/Endpoints";
+import { useSocket } from "@/hooks/SocketContext";
+import { useChatRoom } from "@/hooks/useChatroom";
 import useWebRTC from "@/hooks/useWebRTC";
 import { getToken } from "@/services/crypto/secureStorage";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,16 +16,17 @@ import {
 	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import io, { Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 
 export default function ChatScreen() {
-	const [token, setToken] = useState<string | null>("");
 	const { userId, otherUserId } = useLocalSearchParams<{
 		userId: string;
 		otherUserId: string;
 	}>();
-
+	const [message, setMessage] = useState("");
+	const { socket, initSocket } = useSocket(); // Removed unused isConnected, disconnectSocket
 	const socketRef = useRef<Socket | null>(null);
+	// pass ICE servers from whatever constants you use
 	const {
 		attachSocket,
 		startCall,
@@ -31,124 +35,92 @@ export default function ChatScreen() {
 		chat,
 		isOnline,
 		dcOpen,
-		roomRef,
 		closePeerConnection,
+		roomRef,
 	} = useWebRTC(ICE_SERVERS);
-
-	const [message, setMessage] = useState<string>("");
-	// chat state is provided by hook; remove local chat state
-	// const [chat, setChat] = useState<string[]>([]);
-	// const [isOnline, setIsOnline] = useState<boolean>(false);
-	// const [dcOpen, setDcOpen] = useState(false);
-
-	const room = [userId, otherUserId].sort().join("_");
+	// local roomId (note: server returns a UUID for 1:1 via get_or_create_room)
+	const [roomId, setRoomId] = useState<string | null>(null);
+	// join/leave room peers hook (optional; keeps peer list)
+	const { peers } = useChatRoom(socket ?? null, roomId);
 
 	useEffect(() => {
-		let mounted = true;
 		let detachFn: (() => void) | undefined;
-		let socket: Socket | null = null;
-
-		const connect = async () => {
+		let didCancel = false;
+		const setup = async () => {
 			const t = await getToken();
 			const meId = userId ? String(userId).trim() : null;
 			const otherId = otherUserId ? String(otherUserId).trim() : null;
-
-			console.log("INIT:", { tokenPresent: !!t, meId, otherId });
-			if (!t) {
-				console.warn("No token - abort socket connect");
+			if (!t || !meId || !otherId) {
+				Alert.alert("Missing identifiers or token");
 				return;
 			}
-			if (!meId || !otherId) {
-				console.warn(
-					"Missing userId or otherUserId - abort socket connect"
-				);
+			// FIX: Rely solely on global socket from SocketContext. Init if not present (should be rare, as initSocket called at login).
+			// Removed fallback temporary socket creation to prevent duplicates/conflicts.
+			// Assume initSocket was called earlier; if not, call it here but wait for connection.
+			if (!socket) {
+				initSocket({ userId: meId, token: t });
+			}
+			// Wait for socket to be available and connected (add a timeout to prevent infinite wait)
+			const activeSocket = await new Promise<Socket | null>((resolve) => {
+				if (socket && socket.connected) {
+					resolve(socket);
+					return;
+				}
+				// Listen for connect if initializing
+				const onConnect = () => resolve(socket);
+				socket?.on("connect", onConnect);
+				// Timeout after 5s
+				const timeout = setTimeout(() => {
+					socket?.off("connect", onConnect);
+					resolve(null);
+				}, 5000);
+				return () => {
+					clearTimeout(timeout);
+					socket?.off("connect", onConnect);
+				};
+			});
+			if (!activeSocket) {
 				Alert.alert(
-					"Error",
-					"Missing user identifiers. Cannot connect."
+					"Socket Error",
+					"Failed to establish socket connection."
 				);
 				return;
 			}
-			setToken(t);
-
-			// Prevent creating a second socket if one already exists (safety)
-			if (socketRef.current && socketRef.current.connected) {
-				socket = socketRef.current;
-				console.log(
-					"Socket already connected, reusing existing socket"
-				);
-			} else {
-				socketRef.current = io(BASE_URL, {
-					transports: ["websocket"],
-					auth: { token: t },
-					reconnection: true,
-				});
-				socket = socketRef.current;
-			}
-
-			// on connect/register
-			socket.on("connect", () => {
-				console.log("socket connected", socket?.id);
-				socket?.emit("register", { userId: meId });
-			});
-
-			socket.on("connect_error", (err: any) =>
-				console.warn("socket connect_err", err)
-			);
-
-			// attach socket listeners via hook and keep detach function
-			detachFn = attachSocket(socket, String(meId), String(otherId));
-
-			// keep component-level "registered" logging parity
-			socket.on("registered", (payload: any) => {
-				console.log("socket registered payload (component):", payload);
-			});
+			socketRef.current = activeSocket;
+			detachFn = attachSocket(activeSocket, meId, otherId);
 		};
-
-		// start connection
-		connect();
-
-		// IMPORTANT: cleanup returned to useEffect — will run on unmount or deps change
+		setup();
 		return () => {
-			mounted = false;
-
-			// Call detach returned from hook to remove event listeners + close pc
 			try {
-				if (typeof detachFn === "function") {
-					detachFn();
-					detachFn = undefined;
-				}
-			} catch (e) {
-				console.warn("detachFn error:", e);
-			}
-
-			// Tell server we're leaving the room (best-effort)
+				if (detachFn) detachFn();
+			} catch {}
 			try {
-				if (socketRef.current) {
-					socketRef.current.emit("room:leave", { roomId: room });
+				if (socketRef.current && roomRef.current) {
+					socketRef.current.emit("room:leave", {
+						roomId: roomRef.current,
+					});
 				}
-			} catch (e) {}
-
-			// Remove all listeners and disconnect socket
-			try {
-				if (socketRef.current) {
-					socketRef.current.removeAllListeners();
-					socketRef.current.disconnect();
-				}
-			} catch (e) {
-				console.warn("socket disconnect error:", e);
-			}
-
-			// ensure local ref cleared & peer cleaned
-			socketRef.current = null;
+			} catch {}
 			try {
 				closePeerConnection();
-			} catch (e) {}
-
-			console.log("cleanup completed for ChatScreen effect");
+			} catch {}
 		};
-		// re-run when userId/otherUserId change (same as before)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [userId, otherUserId]);
+	}, [userId, otherUserId, socket]); // Added socket dependency to re-run if socket changes
+
+	// Added: Listener for notify_waiting event
+	// This fixes the notify button not working by showing an alert when notified
+	useEffect(() => {
+		const activeSocket = socketRef.current ?? socket;
+		if (!activeSocket) return;
+		const onNotifyWaiting = ({ from }: { from: string }) => {
+			Alert.alert(`Notification, User ${from} is waiting for you!`);
+		};
+		activeSocket.on("notify_waiting", onNotifyWaiting);
+		return () => {
+			activeSocket.off("notify_waiting", onNotifyWaiting);
+		};
+	}, [socket]);
 
 	const handleStartCall = async () => {
 		if (!userId || !otherUserId) {
@@ -159,28 +131,23 @@ export default function ChatScreen() {
 			await startCall(
 				String(userId),
 				String(otherUserId),
-				socketRef.current ?? null
+				socketRef.current ?? socket ?? null
 			);
 		} catch (err) {
 			console.error("startCall error:", err);
 			Alert.alert("Error", "Failed to start call.");
 		}
 	};
-
 	const handleSendMessage = () => {
 		if (!message.trim()) return;
 		const ok = sendMessage(message);
-		if (ok) {
-			setMessage("");
-		} else {
-			Alert.alert("Not connected", "Peer data channel is not open yet.");
-		}
+		if (ok) setMessage("");
+		else Alert.alert("Not connected", "Peer data channel is not open yet.");
 	};
-
 	const handleNotifyOther = () => {
 		notifyOther(
-			socketRef.current ?? null,
-			room,
+			socketRef.current ?? socket ?? null,
+			roomId ?? "",
 			String(userId),
 			String(otherUserId)
 		);
@@ -189,7 +156,6 @@ export default function ChatScreen() {
 			"The other user will get a push notification if available."
 		);
 	};
-
 	return (
 		<SafeAreaView style={{ flex: 1, padding: 10 }}>
 			<Stack.Screen
@@ -218,6 +184,14 @@ export default function ChatScreen() {
 				/>
 				<TouchableOpacity onPress={handleSendMessage}>
 					<Ionicons name="send" size={20} />
+				</TouchableOpacity>
+			</View>
+			<View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+				<TouchableOpacity onPress={handleStartCall}>
+					<Text>Start Call</Text>
+				</TouchableOpacity>
+				<TouchableOpacity onPress={handleNotifyOther}>
+					<Text>Notify</Text>
 				</TouchableOpacity>
 			</View>
 		</SafeAreaView>

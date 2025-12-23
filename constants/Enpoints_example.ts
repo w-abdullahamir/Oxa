@@ -1,13 +1,13 @@
-export const BASE_URL = "https://example.com";
+export const BASE_URL = "https://Chipher.com";
 
 export const API_ENDPOINTS = {
-	USER_HOME: "/home_example",
-	USER_PROFILE: "/profile_example",
-	LOGIN: "/login_example",
-	LOGOUT: "/logout_example",
-	REGISTER: "/signup_example",
-	FORGOT_PASSWORD: "/forgot-password_example",
-	RESET_PASSWORD: "/reset-password_example",
+	USER_HOME: "/user/home",
+	USER_PROFILE: "/user/profile",
+	LOGIN: "/user/auth/login",
+	LOGOUT: "/user/auth/logout",
+	REGISTER: "/user/auth/signup",
+	FORGOT_PASSWORD: "/user/auth/forgot-password",
+	RESET_PASSWORD: "/user/auth/reset-password",
 };
 
 export const ICE_SERVERS = [

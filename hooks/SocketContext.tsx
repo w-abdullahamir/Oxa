@@ -1,80 +1,80 @@
-// /src/contexts/SocketContext.tsx
-import { BASE_URL } from "@/constants/Endpoints";
-import { getToken } from "@/services/crypto/secureStorage";
-import React, {
-	createContext,
-	useContext,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
-import io from "socket.io-client";
+import React, { createContext, useContext, useRef, useState } from "react";
+import io, { Socket } from "socket.io-client";
+import { BASE_URL } from "../constants/Endpoints"; // adjust if your endpoints path differs
 
-const SocketContext = createContext<any>(null);
+type SocketContextType = {
+	socket: Socket | null;
+	isConnected: boolean;
+	initSocket: (opts: { userId: string; token?: string }) => void;
+	disconnectSocket: () => void;
+};
+
+const SocketContext = createContext<SocketContextType>({
+	socket: null,
+	isConnected: false,
+	initSocket: () => {},
+	disconnectSocket: () => {},
+});
+
+export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-	const socketRef = useRef<any>(null);
-	const [connected, setConnected] = useState(false);
-	const [userId, setUserId] = useState<string | null>(null);
+	const [socket, setSocket] = useState<Socket | null>(null);
+	const [isConnected, setIsConnected] = useState(false);
+	const socketRef = useRef<Socket | null>(null);
 
-	useEffect(() => {
-		let mounted = true;
-		(async () => {
-			const token = await getToken();
-			if (!token) return;
-			// NOTE: you should also get the logged-in userId from auth state
-			const myUserId = /* get from auth store */ null;
-			setUserId(myUserId);
+	const initSocket = ({
+		userId,
+		token,
+	}: {
+		userId: string;
+		token?: string;
+	}) => {
+		if (socketRef.current) return; // already inited
 
-			// create single socket once
-			socketRef.current = io(BASE_URL, {
-				transports: ["websocket"],
-				auth: { token },
-				reconnection: true,
-				autoConnect: true,
-			});
+		const newSocket = io(BASE_URL, {
+			transports: ["websocket"],
+			auth: token ? { token } : undefined,
+			query: { userId },
+			reconnection: true,
+		});
 
-			const s = socketRef.current;
-			s.on("connect", () => {
-				if (!mounted) return;
-				setConnected(true);
-				s.emit("register", { userId: myUserId });
-			});
-			s.on("disconnect", () => setConnected(false));
+		socketRef.current = newSocket;
+		setSocket(newSocket);
 
-			// forward a few useful events app-wide
-			s.on("user_online", (d: any) => {
-				// propagate via app state or events
-			});
-			s.on("user_offline", (d: any) => {});
+		newSocket.on("connect", () => {
+			setIsConnected(true);
+			console.log("Global socket connected:", newSocket.id);
+			// register on server once at login
+			if (userId) newSocket.emit("register", { userId });
+		});
 
-			// cleanup
-			return () => {
-				mounted = false;
-				s.off();
-				s.disconnect();
-			};
-		})();
-	}, []);
+		newSocket.on("disconnect", () => {
+			setIsConnected(false);
+			console.log("Global socket disconnected");
+		});
 
-	const sendSignaling = (evtName: string, payload: any) => {
-		socketRef.current?.emit(evtName, payload);
+		newSocket.on("connect_error", (err: any) => {
+			console.warn("Socket connect_error:", err?.message ?? err);
+		});
+	};
+
+	const disconnectSocket = () => {
+		try {
+			socketRef.current?.disconnect();
+		} catch (e) {
+			/* ignore */
+		}
+		socketRef.current = null;
+		setSocket(null);
+		setIsConnected(false);
 	};
 
 	return (
 		<SocketContext.Provider
-			value={{
-				socket: socketRef.current,
-				connected,
-				sendSignaling,
-				userId,
-			}}
+			value={{ socket, isConnected, initSocket, disconnectSocket }}
 		>
 			{children}
 		</SocketContext.Provider>
 	);
-};
-
-export const useSocket = () => {
-	return useContext(SocketContext);
 };

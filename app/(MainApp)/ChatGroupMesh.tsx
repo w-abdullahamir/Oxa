@@ -1,10 +1,11 @@
 // props: userId, roomId
 // This manages MANY peers: Map<peerId, PeerEntry>
-import { BASE_URL, ICE_SERVERS } from "@/constants/Endpoints";
+import { ICE_SERVERS } from "@/constants/Endpoints";
+import { useSocket } from "@/hooks/SocketContext";
 import { createPeer, PeerEntry } from "@/utils/webrtc";
 import { useEffect, useRef, useState } from "react";
 import { RTCIceCandidate } from "react-native-webrtc";
-import io from "socket.io-client";
+import { Socket } from "socket.io-client";
 
 export default function ChatGroupMesh({
 	userId,
@@ -13,7 +14,8 @@ export default function ChatGroupMesh({
 	userId: string;
 	roomId: string;
 }) {
-	const socketRef = useRef<any>(null);
+	const { socket } = useSocket();
+	const socketRef = useRef<Socket | null>(socket);
 	const peers = useRef<Map<string, PeerEntry>>(new Map());
 	const [logs, setLogs] = useState<string[]>([]);
 
@@ -57,13 +59,12 @@ export default function ChatGroupMesh({
 	};
 
 	useEffect(() => {
-		const socket = io(BASE_URL, { transports: ["websocket"] });
 		socketRef.current = socket;
 
-		socket.on("connect", () => socket.emit("register", { userId }));
-		socket.on("registered", () => socket.emit("room:join", { roomId }));
+		socket?.on("connect", () => socket.emit("register", { userId }));
+		socket?.on("registered", () => socket.emit("room:join", { roomId }));
 
-		socket.on("room:peers", ({ peers: ids }) => {
+		socket?.on("room:peers", ({ peers: ids }) => {
 			// create connections to all existing peers if I am "lower" to avoid glare
 			ids.forEach((pId: string) => {
 				const initiator = userId < pId; // simple tie-breaker
@@ -71,12 +72,12 @@ export default function ChatGroupMesh({
 			});
 		});
 
-		socket.on("room:user-joined", ({ userId: pId }) => {
+		socket?.on("room:user-joined", ({ userId: pId }) => {
 			const initiator = userId < pId;
 			getOrCreatePeer(pId, initiator);
 		});
 
-		socket.on("webrtc-offer", async ({ from, sdp }) => {
+		socket?.on("webrtc-offer", async ({ from, sdp }) => {
 			const entry = getOrCreatePeer(from, false);
 			await entry.pc.setRemoteDescription(sdp);
 			const answer = await entry.pc.createAnswer();
@@ -91,13 +92,13 @@ export default function ChatGroupMesh({
 			entry.iceQueue = [];
 		});
 
-		socket.on("webrtc-answer", async ({ from, sdp }) => {
+		socket?.on("webrtc-answer", async ({ from, sdp }) => {
 			const entry = peers.current.get(from);
 			if (!entry) return;
 			await entry.pc.setRemoteDescription(sdp);
 		});
 
-		socket.on("webrtc-ice", async ({ from, candidate }) => {
+		socket?.on("webrtc-ice", async ({ from, candidate }) => {
 			const entry = peers.current.get(from);
 			if (!entry) return;
 			if (!entry.pc.remoteDescription) entry.iceQueue.push(candidate);
@@ -110,7 +111,7 @@ export default function ChatGroupMesh({
 			}
 		});
 
-		socket.on("room:user-left", ({ userId: pId }) => {
+		socket?.on("room:user-left", ({ userId: pId }) => {
 			const entry = peers.current.get(pId);
 			try {
 				entry?.dc?.close();
@@ -121,9 +122,9 @@ export default function ChatGroupMesh({
 		});
 
 		return () => {
-			socket.emit("room:leave", { roomId });
-			socket.off();
-			socket.disconnect();
+			socket?.emit("room:leave", { roomId });
+			socket?.off();
+			socket?.disconnect();
 			for (const [, entry] of peers.current) {
 				try {
 					entry.dc?.close();
@@ -132,7 +133,7 @@ export default function ChatGroupMesh({
 			}
 			peers.current.clear();
 		};
-	}, [userId, roomId]);
+	}, [userId, roomId, socket]);
 
 	// UI omitted; wire your message box to entry.dc.send(...) per peer
 	return null;

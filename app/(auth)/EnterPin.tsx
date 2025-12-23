@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { BASE_URL, API_ENDPOINTS } from "@/constants/Endpoints";
+import { API_ENDPOINTS, BASE_URL } from "@/constants/Endpoints";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -36,7 +36,7 @@ export default function EnterPinScreen() {
 	};
 
 	const handleResetPassword = async () => {
-		if(password.length < 6){
+		if (password.length < 6) {
 			Toast.show({
 				type: "error",
 				text1: "Password must be atleast 6 charachters",

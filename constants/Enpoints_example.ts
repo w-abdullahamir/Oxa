@@ -1,5 +1,4 @@
-export const BASE_URL =
-	"https://intelligence-kids-produce-maria.trycloudflare.com";
+export const BASE_URL = "https://Chipher.com";
 
 export const API_ENDPOINTS = {
 	USER_HOME: "/user/home",

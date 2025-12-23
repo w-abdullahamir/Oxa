@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { BASE_URL, API_ENDPOINTS } from "@/constants/Endpoints";
+import { API_ENDPOINTS, BASE_URL } from "@/constants/Endpoints";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { useState } from "react";

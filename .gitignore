@@ -37,8 +37,8 @@ yarn-error.*
 # @end expo-cli
 
 # Endpoints
-**/Enpoints.ts
-!**/Enpoints_example.ts
+**/Endpoints.ts
+!**/Endpoints_example.ts
 
 # Android specifics (Bare Workflow)
 android/app/build/

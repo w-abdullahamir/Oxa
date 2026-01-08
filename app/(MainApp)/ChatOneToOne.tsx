@@ -1,7 +1,6 @@
-// Updated ChatOneToOne.tsx
 import { ICE_SERVERS } from "@/constants/Endpoints";
 import { useSocket } from "@/hooks/SocketContext";
-import { useChatRoom } from "@/hooks/useChatroom";
+import { useUserData } from "@/hooks/UserDataContext";
 import useWebRTC from "@/hooks/useWebRTC";
 import { getToken } from "@/services/crypto/secureStorage";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +9,9 @@ import React, { useEffect, useRef, useState } from "react";
 import {
 	Alert,
 	FlatList,
+	KeyboardAvoidingView,
+	Platform,
+	StyleSheet,
 	Text,
 	TextInput,
 	TouchableOpacity,
@@ -23,177 +25,286 @@ export default function ChatScreen() {
 		userId: string;
 		otherUserId: string;
 	}>();
+
+	const { userData } = useUserData();
+	const contact = userData?.contacts?.find((c) => c.user === otherUserId);
+	const alias = contact?.alias || otherUserId;
+
 	const [message, setMessage] = useState("");
-	const { socket, initSocket } = useSocket(); // Removed unused isConnected, disconnectSocket
+	const { socket, initSocket, onlineUsers } = useSocket();
 	const socketRef = useRef<Socket | null>(null);
-	// pass ICE servers from whatever constants you use
 	const {
 		attachSocket,
 		startCall,
 		sendMessage,
 		notifyOther,
 		chat,
-		isOnline,
 		dcOpen,
 		closePeerConnection,
 		roomRef,
 	} = useWebRTC(ICE_SERVERS);
-	// local roomId (note: server returns a UUID for 1:1 via get_or_create_room)
-	const [roomId, setRoomId] = useState<string | null>(null);
-	// join/leave room peers hook (optional; keeps peer list)
-	const { peers } = useChatRoom(socket ?? null, roomId);
 
+	const isPeerOnline = onlineUsers.has(String(otherUserId));
+	const isAttached = useRef(false);
+
+	// ... (Keep your existing useEffect, handleStartCall, etc. logic) ...
 	useEffect(() => {
+		if (!socket || !userId || !otherUserId || isAttached.current) return;
 		let detachFn: (() => void) | undefined;
-		let didCancel = false;
 		const setup = async () => {
+			isAttached.current = true;
 			const t = await getToken();
-			const meId = userId ? String(userId).trim() : null;
-			const otherId = otherUserId ? String(otherUserId).trim() : null;
-			if (!t || !meId || !otherId) {
-				Alert.alert("Missing identifiers or token");
-				return;
-			}
-			// FIX: Rely solely on global socket from SocketContext. Init if not present (should be rare, as initSocket called at login).
-			// Removed fallback temporary socket creation to prevent duplicates/conflicts.
-			// Assume initSocket was called earlier; if not, call it here but wait for connection.
-			if (!socket) {
-				initSocket({ userId: meId, token: t });
-			}
-			// Wait for socket to be available and connected (add a timeout to prevent infinite wait)
-			const activeSocket = await new Promise<Socket | null>((resolve) => {
-				if (socket && socket.connected) {
-					resolve(socket);
-					return;
-				}
-				// Listen for connect if initializing
-				const onConnect = () => resolve(socket);
-				socket?.on("connect", onConnect);
-				// Timeout after 5s
-				const timeout = setTimeout(() => {
-					socket?.off("connect", onConnect);
-					resolve(null);
-				}, 5000);
-				return () => {
-					clearTimeout(timeout);
-					socket?.off("connect", onConnect);
-				};
-			});
-			if (!activeSocket) {
-				Alert.alert(
-					"Socket Error",
-					"Failed to establish socket connection."
-				);
-				return;
-			}
-			socketRef.current = activeSocket;
-			detachFn = attachSocket(activeSocket, meId, otherId);
+			if (!socket)
+				initSocket({ userId: String(userId), token: t || undefined });
+			socketRef.current = socket;
+			detachFn = attachSocket(
+				socket!,
+				String(userId),
+				String(otherUserId)
+			);
 		};
 		setup();
 		return () => {
-			try {
-				if (detachFn) detachFn();
-			} catch {}
-			try {
-				if (socketRef.current && roomRef.current) {
-					socketRef.current.emit("room:leave", {
-						roomId: roomRef.current,
-					});
-				}
-			} catch {}
-			try {
-				closePeerConnection();
-			} catch {}
+			if (detachFn) detachFn();
+			isAttached.current = false;
+			closePeerConnection();
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [userId, otherUserId, socket]); // Added socket dependency to re-run if socket changes
+	}, [userId, otherUserId, socket]);
 
-	// Added: Listener for notify_waiting event
-	// This fixes the notify button not working by showing an alert when notified
-	useEffect(() => {
-		const activeSocket = socketRef.current ?? socket;
-		if (!activeSocket) return;
-		const onNotifyWaiting = ({ from }: { from: string }) => {
-			Alert.alert(`Notification, User ${from} is waiting for you!`);
-		};
-		activeSocket.on("notify_waiting", onNotifyWaiting);
-		return () => {
-			activeSocket.off("notify_waiting", onNotifyWaiting);
-		};
-	}, [socket]);
-
-	const handleStartCall = async () => {
-		if (!userId || !otherUserId) {
-			Alert.alert("Missing IDs", "Cannot start call without both IDs.");
-			return;
-		}
-		try {
-			await startCall(
-				String(userId),
-				String(otherUserId),
-				socketRef.current ?? socket ?? null
-			);
-		} catch (err) {
-			console.error("startCall error:", err);
-			Alert.alert("Error", "Failed to start call.");
-		}
-	};
 	const handleSendMessage = () => {
 		if (!message.trim()) return;
-		const ok = sendMessage(message);
-		if (ok) setMessage("");
-		else Alert.alert("Not connected", "Peer data channel is not open yet.");
+		if (sendMessage(message)) setMessage("");
+		else
+			Alert.alert(
+				"Connection pending",
+				"Please wait for the peer to connect."
+			);
 	};
-	const handleNotifyOther = () => {
-		notifyOther(
-			socketRef.current ?? socket ?? null,
-			roomId ?? "",
-			String(userId),
-			String(otherUserId)
-		);
-		Alert.alert(
-			"Notified",
-			"The other user will get a push notification if available."
+
+	const renderChatItem = ({ item }: { item: string }) => {
+		const isMe = item.startsWith("Me:");
+		const content = isMe
+			? item.replace("Me: ", "")
+			: item.replace("Peer: ", "");
+
+		return (
+			<View
+				style={[
+					styles.bubbleContainer,
+					isMe ? styles.meContainer : styles.themContainer,
+				]}
+			>
+				<View
+					style={[
+						styles.bubble,
+						isMe ? styles.meBubble : styles.themBubble,
+					]}
+				>
+					<Text
+						style={[
+							styles.messageText,
+							isMe ? styles.meText : styles.themText,
+						]}
+					>
+						{content}
+					</Text>
+				</View>
+			</View>
 		);
 	};
+
 	return (
-		<SafeAreaView style={{ flex: 1, padding: 10 }}>
+		<SafeAreaView style={styles.container} edges={["bottom"]}>
 			<Stack.Screen
 				options={{
 					headerShown: true,
-					title: isOnline ? "Online" : "Offline",
+					headerStyle: { backgroundColor: "#121212" },
+					headerTintColor: "#fff",
+					headerTitle: () => (
+						<View style={styles.headerInfo}>
+							<Text style={styles.headerAlias} numberOfLines={1}>
+								{alias}
+							</Text>
+							<View
+								style={[
+									styles.statusDot,
+									{
+										backgroundColor: isPeerOnline
+											? "#4CAF50"
+											: "#757575",
+									},
+								]}
+							/>
+						</View>
+					),
+					headerRight: () => (
+						<View style={styles.headerActions}>
+							<TouchableOpacity
+								onPress={() =>
+									notifyOther(
+										socket,
+										"",
+										String(userId),
+										String(otherUserId)
+									)
+								}
+								style={styles.headerBtn}
+							>
+								<Ionicons
+									name="notifications-outline"
+									size={22}
+									color="#fff"
+								/>
+							</TouchableOpacity>
+							<TouchableOpacity
+								//onPress={handleStartCall}
+								style={styles.headerBtn}
+							>
+								<Ionicons
+									name="videocam-outline"
+									size={24}
+									color="#fff"
+								/>
+							</TouchableOpacity>
+						</View>
+					),
 				}}
 			/>
+
 			<FlatList
 				data={chat}
 				keyExtractor={(_, i) => i.toString()}
-				renderItem={({ item }) => (
-					<View style={{ padding: 8 }}>
-						<Text>{item}</Text>
-					</View>
-				)}
+				renderItem={renderChatItem}
+				contentContainerStyle={styles.chatList}
 			/>
-			<View style={{ flexDirection: "row", padding: 8 }}>
-				<TextInput
-					style={{ flex: 1, borderWidth: 1, padding: 8 }}
-					value={message}
-					onChangeText={setMessage}
-					placeholder={
-						dcOpen ? "Message" : "Waiting for connection..."
-					}
-				/>
-				<TouchableOpacity onPress={handleSendMessage}>
-					<Ionicons name="send" size={20} />
-				</TouchableOpacity>
-			</View>
-			<View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
-				<TouchableOpacity onPress={handleStartCall}>
-					<Text>Start Call</Text>
-				</TouchableOpacity>
-				<TouchableOpacity onPress={handleNotifyOther}>
-					<Text>Notify</Text>
-				</TouchableOpacity>
-			</View>
+
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : undefined}
+				keyboardVerticalOffset={90}
+			>
+				<View style={styles.inputContainer}>
+					<View style={styles.inputWrapper}>
+						<TextInput
+							style={styles.input}
+							value={message}
+							onChangeText={setMessage}
+							placeholder={
+								dcOpen ? "Type a message..." : "Connecting..."
+							}
+							placeholderTextColor="#999"
+							multiline
+						/>
+						<TouchableOpacity
+							onPress={handleSendMessage}
+							disabled={!dcOpen || !message.trim()}
+							style={[
+								styles.sendBtn,
+								(!dcOpen || !message.trim()) && {
+									opacity: 0.5,
+								},
+							]}
+						>
+							<Ionicons name="send" size={20} color="#fff" />
+						</TouchableOpacity>
+					</View>
+				</View>
+			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);
 }
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: "#000", // Dark theme background
+	},
+	headerInfo: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	headerAlias: {
+		fontSize: 17,
+		fontWeight: "600",
+		color: "#fff",
+		marginRight: 6,
+	},
+	statusDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+	},
+	headerActions: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	headerBtn: {
+		marginLeft: 15,
+		padding: 5,
+	},
+	chatList: {
+		paddingHorizontal: 12,
+		paddingVertical: 16,
+	},
+	bubbleContainer: {
+		marginVertical: 4,
+		flexDirection: "row",
+	},
+	meContainer: {
+		justifyContent: "flex-end",
+	},
+	themContainer: {
+		justifyContent: "flex-start",
+	},
+	bubble: {
+		maxWidth: "80%",
+		paddingVertical: 8,
+		paddingHorizontal: 14,
+		borderRadius: 20,
+	},
+	meBubble: {
+		backgroundColor: "#007AFF", // Classic iOS blue
+		borderBottomRightRadius: 4,
+	},
+	themBubble: {
+		backgroundColor: "#262628",
+		borderBottomLeftRadius: 4,
+	},
+	messageText: {
+		fontSize: 16,
+	},
+	meText: {
+		color: "#fff",
+	},
+	themText: {
+		color: "#fff",
+	},
+	inputContainer: {
+		padding: 10,
+		backgroundColor: "#000",
+	},
+	inputWrapper: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#1C1C1E",
+		borderRadius: 25,
+		paddingHorizontal: 15,
+		paddingVertical: 5,
+		minHeight: 45,
+	},
+	input: {
+		flex: 1,
+		color: "#fff",
+		fontSize: 16,
+		paddingTop: 8,
+		paddingBottom: 8,
+	},
+	sendBtn: {
+		backgroundColor: "#007AFF",
+		width: 34,
+		height: 34,
+		borderRadius: 17,
+		justifyContent: "center",
+		alignItems: "center",
+		marginLeft: 8,
+	},
+});

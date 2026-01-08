@@ -1,7 +1,7 @@
 {
 	"expo": {
-		"name": "Chipher",
-		"slug": "Chipher",
+		"name": "Oxa",
+		"slug": "oxa",
 		"description": "A lightweight, fast, and secure mobile app built with React Native, optimized for performance and smooth user experience.",
 		"platforms": ["ios", "android"],
 		"backgroundColor": "#000000",
@@ -9,7 +9,7 @@
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/adaptive-icon.png",
-		"scheme": "chipher",
+		"scheme": "oxa",
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
 		"ios": {
@@ -21,13 +21,11 @@
 				"backgroundColor": "#000000"
 			},
 			"edgeToEdgeEnabled": false,
-			"package": "com.hsk9wjns.Chipher",
+			"package": "com.hsk9wjns.Oxa",
 			"permissions": [
 				"android.permission.CAMERA",
 				"android.permission.RECORD_AUDIO",
 				"android.permission.MODIFY_AUDIO_SETTINGS",
-				"android.permission.BLUETOOTH",
-				"android.permission.BLUETOOTH_CONNECT",
 				"android.permission.INTERNET",
 				"android.permission.ACCESS_NETWORK_STATE",
 				"android.permission.WAKE_LOCK"
@@ -45,21 +43,25 @@
 				}
 			],
 			"expo-secure-store",
-			"expo-web-browser",
 			"expo-font",
 			[
 				"expo-camera",
 				{
-					"cameraPermissions": "Allow Chipher to access your camera",
-					"microphonePermissions": "Allow Chipher to access your microphone",
+					"cameraPermissions": "Allow Oxa to access your camera",
+					"microphonePermissions": "Allow Oxa to access your microphone",
 					"recordAudioAndroid": true
 				}
-			],
-			"expo-audio",
-			"expo-video"
+			]
 		],
 		"experiments": {
 			"typedRoutes": true
-		}
+		},
+		"extra": {
+			"router": {},
+			"eas": {
+				"projectId": "bfbb4498-42c2-4e97-b775-a81d01f98c92"
+			}
+		},
+		"owner": "hsk9wjns"
 	}
 }

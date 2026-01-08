@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { Platform } from "react-native";
 import {
 	mediaDevices,
 	MediaStream,
@@ -6,7 +7,7 @@ import {
 	RTCPeerConnection,
 	RTCSessionDescription,
 } from "react-native-webrtc";
-import type { Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 // Added imports for permissions in Expo
 import { Audio } from "expo-av";
 import { Camera } from "expo-camera";
@@ -14,6 +15,8 @@ import { Camera } from "expo-camera";
 type Maybe<T> = T | null;
 
 export default function useWebRTC(ICE_SERVERS: any) {
+	const currentRoomId = useRef<string | null>(null);
+	const mobileModel = (Platform.constants as any).Model;
 	const pcRef = useRef<Maybe<RTCPeerConnection>>(null);
 	const dcRef = useRef<any>(null);
 	const iceQueueRef = useRef<any[]>([]);
@@ -46,11 +49,13 @@ export default function useWebRTC(ICE_SERVERS: any) {
 				const pcState = pcRef.current.connectionState;
 				if (pcState === "connected" || pcState === "connecting") {
 					console.log(
+						mobileModel,
 						"Reusing existing PeerConnection — already active"
 					);
 					return;
 				} else {
 					console.log(
+						mobileModel,
 						"Closing stale PeerConnection before creating a new one"
 					);
 					try {
@@ -59,7 +64,9 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					pcRef.current = null;
 				}
 			}
-			console.log("Creating RTCPeerConnection", { isInitiator });
+			console.log(mobileModel, "Creating RTCPeerConnection", {
+				isInitiator,
+			});
 			pcRef.current = new RTCPeerConnection({
 				iceServers: ICE_SERVERS,
 			} as any);
@@ -68,18 +75,26 @@ export default function useWebRTC(ICE_SERVERS: any) {
 			pcRef.current.addTransceiver("video", { direction: "recvonly" });
 			// ✅ Handle ICE and connection states
 			(pcRef.current as any).oniceconnectionstatechange = () => {
-				console.log("ICE State:", pcRef.current?.iceConnectionState);
+				console.log(
+					mobileModel,
+					"ICE State:",
+					pcRef.current?.iceConnectionState
+				);
 				if (
 					["failed", "disconnected"].includes(
 						pcRef.current?.iceConnectionState || ""
 					)
 				) {
-					console.warn("ICE connection failed/disconnected");
+					console.warn(
+						mobileModel,
+						"ICE connection failed/disconnected"
+					);
 				}
 			};
 			// ✅ Keep track of connection state
 			(pcRef.current as any).onconnectionstatechange = () => {
 				console.log(
+					mobileModel,
 					"Connection State:",
 					pcRef.current?.connectionState
 				);
@@ -89,6 +104,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					)
 				) {
 					console.log(
+						mobileModel,
 						"Detected disconnection — will not auto-close immediately"
 					);
 					// ⚠️ Instead of auto-cleaning right away, wait to confirm full close
@@ -99,7 +115,10 @@ export default function useWebRTC(ICE_SERVERS: any) {
 								pcRef.current.connectionState
 							)
 						) {
-							console.log("Connection fully closed, cleaning up");
+							console.log(
+								mobileModel,
+								"Connection fully closed, cleaning up"
+							);
 							closePeerConnection();
 						}
 					}, 5000);
@@ -112,7 +131,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 				event.streams[0]
 					.getTracks()
 					.forEach((t: any) => remoteStream.addTrack(t));
-				console.log("Remote track received");
+				console.log(mobileModel, "Remote track received");
 			};
 			// ✅ Initiator creates data channel
 			if (isInitiator) {
@@ -120,7 +139,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					dcRef.current = pcRef.current.createDataChannel("chat");
 					setupDataChannel(dcRef.current);
 				} catch (e) {
-					console.warn("createDataChannel error:", e);
+					console.warn(mobileModel, "createDataChannel error:", e);
 				}
 			}
 			// ✅ Negotiation (perfect negotiation pattern)
@@ -129,12 +148,16 @@ export default function useWebRTC(ICE_SERVERS: any) {
 				if (!pc) return;
 				// 🚫 Ignore if not initiator
 				if (!isInitiator) {
-					console.log("Ignoring negotiationneeded: not initiator");
+					console.log(
+						mobileModel,
+						"Ignoring negotiationneeded: not initiator"
+					);
 					return;
 				}
 				// 🚫 Prevent race conditions
 				if (makingOffer.current) {
 					console.log(
+						mobileModel,
 						"Already making an offer, skip negotiationneeded"
 					);
 					return;
@@ -142,11 +165,17 @@ export default function useWebRTC(ICE_SERVERS: any) {
 				// 🚫 Android fix — wait a short delay for signaling to stabilize
 				await new Promise((r) => setTimeout(r, 250));
 				if (pc.signalingState !== "stable") {
-					console.log("Signaling not stable, skip negotiation");
+					console.log(
+						mobileModel,
+						"Signaling not stable, skip negotiation"
+					);
 					return;
 				}
 				try {
-					console.log("⚡ negotiationneeded (initiator)");
+					console.log(
+						mobileModel,
+						"⚡ negotiationneeded (initiator)"
+					);
 					makingOffer.current = true;
 					const offer = await pc.createOffer({ iceRestart: false });
 					await pc.setLocalDescription(offer as any);
@@ -156,9 +185,9 @@ export default function useWebRTC(ICE_SERVERS: any) {
 						sdp: offer,
 						room: roomRef.current ?? sRoomId,
 					});
-					console.log("Offer sent via socket");
+					console.log(mobileModel, "Offer sent via socket");
 				} catch (err) {
-					console.error("negotiationneeded error", err);
+					console.error(mobileModel, "negotiationneeded error", err);
 				} finally {
 					makingOffer.current = false;
 				}
@@ -187,13 +216,17 @@ export default function useWebRTC(ICE_SERVERS: any) {
 							new RTCIceCandidate(c as any)
 						);
 					} catch (e) {
-						console.warn("Failed to add queued ICE:", e);
+						console.warn(
+							mobileModel,
+							"Failed to add queued ICE:",
+							e
+						);
 					}
 				}
 				iceQueueRef.current = [];
 			}
 		},
-		[ICE_SERVERS]
+		[ICE_SERVERS, Socket]
 	);
 
 	/** -----------------------------
@@ -203,16 +236,17 @@ export default function useWebRTC(ICE_SERVERS: any) {
 ------------------------------ */
 	const setupDataChannel = useCallback((channel: any) => {
 		channel.onopen = () => {
-			console.log("DataChannel open");
+			console.log(mobileModel, "DataChannel open");
 			setDcOpen(true);
 		};
 		channel.onclose = () => {
-			console.log("DataChannel closed");
+			console.log(mobileModel, "DataChannel closed");
 			setDcOpen(false);
 		};
-		channel.onerror = (err: any) => console.warn("DataChannel error", err);
+		channel.onerror = (err: any) =>
+			console.warn(mobileModel, "DataChannel error", err);
 		channel.onmessage = (ev: any) =>
-			setChat((prev) => [...prev, `Them: ${ev.data}`]);
+			setChat((prev) => [...prev, `${ev.data}`]);
 	}, []);
 
 	/** -----------------------------
@@ -227,7 +261,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 			localStreamRef.current = null;
 			remoteStreamRef.current = null;
 		} catch (e) {
-			console.warn("cleanupMedia error", e);
+			console.warn(mobileModel, "cleanupMedia error", e);
 		}
 	}, []);
 
@@ -237,9 +271,13 @@ export default function useWebRTC(ICE_SERVERS: any) {
 🔌 CLOSE PEER CONNECTION
 ------------------------------ */
 	const closePeerConnection = useCallback(() => {
+		cleanupMedia();
+		if (pcRef.current) {
+			pcRef.current.close();
+			pcRef.current = null;
+		}
 		try {
 			dcRef.current?.close?.();
-			pcRef.current?.close?.();
 		} catch (e) {}
 		pcRef.current = null;
 		dcRef.current = null;
@@ -251,8 +289,8 @@ export default function useWebRTC(ICE_SERVERS: any) {
 		localStreamRef.current = null;
 		remoteStreamRef.current = null;
 		setDcOpen(false);
-		console.log("PeerConnection closed and cleaned");
-	}, []);
+		console.log(mobileModel, "PeerConnection closed and cleaned");
+	}, [cleanupMedia]);
 
 	/** -----------------------------
 
@@ -263,10 +301,11 @@ export default function useWebRTC(ICE_SERVERS: any) {
 ------------------------------ */
 	const attachSocket = useCallback(
 		(socket: Socket, meId: string, otherId: string) => {
+			const isSameRoom = currentRoomId.current === `${meId}-${otherId}`;
+			currentRoomId.current = `${meId}-${otherId}`;
 			if (!socket) return;
-			const isInitiator = String(meId) < String(otherId);
-			polite.current = !isInitiator;
 			const onRegistered = () => {
+				if (isSameRoom && roomRef.current) return;
 				socket.emit(
 					"get_or_create_room",
 					{ withUser: otherId },
@@ -277,35 +316,93 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					}
 				);
 			};
-			const onRoomPeers = async ({ roomId, peers }: any) => {
-				const peerPresent = peers && peers.includes(otherId);
-				if (
-					pcRef.current &&
-					pcRef.current.connectionState === "connected"
-				) {
+			const onRoomPeers = async ({ roomId, peers, initiator }: any) => {
+				roomRef.current = roomId;
+				const myIdStr = String(meId).trim();
+				const otherIdStr = String(otherId).trim();
+
+				polite.current = String(initiator) !== myIdStr;
+
+				// Convert all peer IDs to strings for the check
+				const peerStrings = peers
+					.map((p: any) => String(p).trim())
+					.filter((id: string) => id !== myIdStr);
+				const isPeerPresent = peerStrings.includes(otherIdStr);
+
+				console.log(
+					mobileModel,
+					`PEERS IN ROOM: [${peerStrings}] | TARGET: ${otherIdStr}`
+				);
+				if (!isPeerPresent) {
 					console.log(
-						"Skip re-creating PeerConnection: already connected"
+						mobileModel,
+						"Waiting for peer to join room..."
 					);
 					return;
 				}
-				if (!pcRef.current) {
+
+				const pc = pcRef.current;
+				if (
+					pc &&
+					(pc.connectionState === "connected" ||
+						pc.connectionState === "connecting")
+				) {
+					return;
+				}
+
+				if (!polite.current) {
+					console.log(
+						mobileModel,
+						"--- I AM INITIATOR: Creating Offer ---"
+					);
+					// Ensure createPeerConnection sets up the PC and calls createOffer internally
 					await createPeerConnection(
 						meId,
 						otherId,
 						roomId,
-						isInitiator,
+						true,
 						socket
 					);
+				} else {
+					console.log(
+						mobileModel,
+						"--- I AM POLITE: Waiting for Offer ---"
+					);
 				}
-				if (isInitiator && peerPresent && !makingOffer.current) {
-					const offer = await pcRef.current!.createOffer();
-					await pcRef.current!.setLocalDescription(offer as any);
-					socket.emit("webrtc-offer", {
-						to: otherId,
-						from: meId,
-						sdp: offer,
-						room: roomRef.current ?? roomId,
-					});
+			};
+			const onRoomUserJoined = async ({ roomId, userId }: any) => {
+				const myIdStr = String(meId).trim();
+				const joinedUserStr = String(userId).trim();
+				const targetUserStr = String(otherId).trim();
+
+				console.log(mobileModel, `User joined room: ${joinedUserStr}`);
+
+				// If the user who just joined is the one we are looking for
+				if (joinedUserStr === targetUserStr) {
+					console.log(
+						mobileModel,
+						"Target peer arrived! Checking connection..."
+					);
+
+					// If I am the initiator (not polite) and we aren't connected yet, START THE OFFER
+					if (!polite.current) {
+						const pc = pcRef.current;
+						if (
+							pc &&
+							(pc.connectionState === "connected" ||
+								pc.connectionState === "connecting")
+						) {
+							return;
+						}
+						console.log(mobileModel, "Initiating delayed offer...");
+						await createPeerConnection(
+							meId,
+							otherId,
+							roomId,
+							true,
+							socket
+						);
+					}
 				}
 			};
 			const onWebrtcOffer = async (data: any) => {
@@ -317,7 +414,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 							meId,
 							otherId,
 							roomId,
-							isInitiator,
+							false,
 							socket
 						);
 					const offerCollision =
@@ -325,11 +422,17 @@ export default function useWebRTC(ICE_SERVERS: any) {
 						pcRef.current?.signalingState !== "stable";
 					if (offerCollision) {
 						if (!polite.current) {
-							console.log("Offer collision, ignoring offer");
+							console.log(
+								mobileModel,
+								"Offer collision, ignoring offer"
+							);
 							ignoreOffer.current = true;
 							return;
 						} else {
-							console.log("Offer collision, rolling back");
+							console.log(
+								mobileModel,
+								"Offer collision, rolling back"
+							);
 							await pcRef.current?.setLocalDescription({
 								type: "rollback",
 							} as any);
@@ -354,7 +457,10 @@ export default function useWebRTC(ICE_SERVERS: any) {
 							audioPerm.status !== "granted" ||
 							(data.meta.video && cameraPerm.status !== "granted")
 						) {
-							console.warn("Permissions not granted for media");
+							console.warn(
+								mobileModel,
+								"Permissions not granted for media"
+							);
 							// Proceed without local media (one-way call)
 						} else {
 							try {
@@ -369,10 +475,12 @@ export default function useWebRTC(ICE_SERVERS: any) {
 									}
 								});
 								console.log(
+									mobileModel,
 									"Local media added for incoming call"
 								);
 							} catch (err) {
 								console.error(
+									mobileModel,
 									"Failed to get local media for incoming call:",
 									err
 								);
@@ -380,22 +488,16 @@ export default function useWebRTC(ICE_SERVERS: any) {
 							}
 						}
 					}
-					if (
-						["have-remote-offer", "stable"].includes(
-							pcRef.current!.signalingState
-						)
-					) {
-						const answer = await pcRef.current!.createAnswer();
-						await pcRef.current!.setLocalDescription(answer as any);
-						socket.emit("webrtc-answer", {
-							to: data.from,
-							from: meId,
-							sdp: answer,
-							room: roomRef.current ?? roomId,
-						});
-					}
+					const answer = await pcRef.current!.createAnswer();
+					await pcRef.current!.setLocalDescription(answer as any);
+					socket.emit("webrtc-answer", {
+						to: data.from,
+						from: meId,
+						sdp: answer,
+						room: roomRef.current ?? roomId,
+					});
 				} catch (err) {
-					console.error("handle webrtc-offer err", err);
+					console.error(mobileModel, "handle webrtc-offer err", err);
 				}
 			};
 			const onWebrtcAnswer = async (data: any) => {
@@ -411,12 +513,12 @@ export default function useWebRTC(ICE_SERVERS: any) {
 						);
 					}
 				} catch (err) {
-					console.error("handle webrtc-answer err", err);
+					console.error(mobileModel, "handle webrtc-answer err", err);
 				}
 			};
 			const onWebrtcIce = async (data: any) => {
 				try {
-					if (!pcRef.current) {
+					if (!pcRef.current || !pcRef.current.remoteDescription) {
 						iceQueueRef.current.push(data.candidate);
 						return;
 					}
@@ -424,7 +526,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 						new RTCIceCandidate(data.candidate as any)
 					);
 				} catch (err) {
-					console.warn("addIceCandidate err", err);
+					console.warn(mobileModel, "addIceCandidate err", err);
 				}
 			};
 			const onUserOnline = (d: any) => {
@@ -440,12 +542,13 @@ export default function useWebRTC(ICE_SERVERS: any) {
 				}
 			};
 			socket.on("registered", onRegistered);
-			socket.on("room:peers", onRoomPeers);
+			socket.on("room:sync", onRoomPeers);
+			socket.on("room:user-joined", onRoomUserJoined);
+			socket.on("user_online", onUserOnline);
+			socket.on("user_offline", onUserOffline);
 			socket.on("webrtc-offer", onWebrtcOffer);
 			socket.on("webrtc-answer", onWebrtcAnswer);
 			socket.on("webrtc-ice", onWebrtcIce);
-			socket.on("user_online", onUserOnline);
-			socket.on("user_offline", onUserOffline);
 			socket.on("room:user-left", onRoomUserLeft);
 			// FIX: If socket is already connected and registered, trigger onRegistered manually to fetch room.
 			// This handles cases where registration happened earlier (e.g., at login).
@@ -459,12 +562,13 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					});
 				} catch {}
 				socket.off("registered", onRegistered);
-				socket.off("room:peers", onRoomPeers);
+				socket.off("room:sync", onRoomPeers);
+				socket.off("room:user-joined", onRoomUserJoined);
+				socket.off("user_online", onUserOnline);
+				socket.off("user_offline", onUserOffline);
 				socket.off("webrtc-offer", onWebrtcOffer);
 				socket.off("webrtc-answer", onWebrtcAnswer);
 				socket.off("webrtc-ice", onWebrtcIce);
-				socket.off("user_online", onUserOnline);
-				socket.off("user_offline", onUserOffline);
 				socket.off("room:user-left", onRoomUserLeft);
 				closePeerConnection();
 			};
@@ -486,14 +590,6 @@ export default function useWebRTC(ICE_SERVERS: any) {
 			socket?: Socket | null,
 			isVideoCall = true
 		) => {
-			if (!meId || !otherId) throw new Error("Missing IDs");
-			await createPeerConnection(
-				meId,
-				otherId,
-				undefined,
-				String(meId) < String(otherId),
-				socket
-			);
 			if (!pcRef.current)
 				throw new Error("Failed to create peer connection");
 			try {
@@ -508,7 +604,10 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					audioPerm.status !== "granted" ||
 					(isVideoCall && cameraPerm.status !== "granted")
 				) {
-					console.warn("Permissions not granted for media");
+					console.warn(
+						mobileModel,
+						"Permissions not granted for media"
+					);
 					throw new Error("Permissions denied");
 				}
 				const stream = await mediaDevices.getUserMedia({
@@ -524,24 +623,8 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					pcRef.current.addTrack(videoTrack, stream);
 					if (!isVideoCall) videoTrack.enabled = false;
 				}
-				// ✅ Create and send offer
-				if (!makingOffer.current) {
-					makingOffer.current = true;
-					const offer = await pcRef.current.createOffer();
-					await pcRef.current.setLocalDescription(offer as any);
-					socket?.emit("webrtc-offer", {
-						to: otherId,
-						from: meId,
-						sdp: offer,
-						room: roomRef.current ?? undefined,
-						// Added: Send meta to indicate this is a call offer
-						// This allows the receiver to detect and add local media
-						meta: { call: true, video: isVideoCall },
-					});
-					makingOffer.current = false;
-				}
 			} catch (err) {
-				console.error("startCall error:", err);
+				console.error(mobileModel, "startCall error:", err);
 				cleanupMedia();
 				closePeerConnection();
 				throw err;

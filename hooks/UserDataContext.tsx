@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useState } from "react";
 
 interface Contact {
-	otherUserId?: string;
-	otherUsername?: string;
-	otherEmail?: string;
+	user?: string;
+	alias?: string;
 }
 
 interface UserData {

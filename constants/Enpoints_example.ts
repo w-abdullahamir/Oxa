@@ -1,4 +1,4 @@
-export const BASE_URL = "https://Chipher.com";
+export const BASE_URL = "https://Oxa.com";
 
 export const API_ENDPOINTS = {
 	USER_HOME: "/user/home",

@@ -1,4 +1,4 @@
-package com.hsk9wjns.Chipher
+package com.hsk9wjns.Oxa
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

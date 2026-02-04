@@ -11,10 +11,12 @@ import { Socket } from "socket.io-client";
 // Added imports for permissions in Expo
 import { Audio } from "expo-av";
 import { Camera } from "expo-camera";
+import { useSocket } from "./SocketContext";
 
 type Maybe<T> = T | null;
 
 export default function useWebRTC(ICE_SERVERS: any) {
+	const { setIsCallActive } = useSocket();
 	const currentRoomId = useRef<string | null>(null);
 	const mobileModel = (Platform.constants as any).Model;
 	const pcRef = useRef<Maybe<RTCPeerConnection>>(null);
@@ -256,6 +258,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 ------------------------------ */
 	const cleanupMedia = useCallback(() => {
 		try {
+			setIsCallActive(false);
 			localStreamRef.current?.getTracks().forEach((t) => t.stop());
 			remoteStreamRef.current?.getTracks().forEach((t) => t.stop());
 			localStreamRef.current = null;
@@ -615,6 +618,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					video: isVideoCall,
 				});
 				localStreamRef.current = stream;
+				setIsCallActive(true);
 				// ✅ Always attach audio/video (disabled video if audio-only)
 				const audioTrack = stream.getAudioTracks()[0];
 				const videoTrack = stream.getVideoTracks()[0];
@@ -625,6 +629,7 @@ export default function useWebRTC(ICE_SERVERS: any) {
 				}
 			} catch (err) {
 				console.error(mobileModel, "startCall error:", err);
+				setIsCallActive(false);
 				cleanupMedia();
 				closePeerConnection();
 				throw err;

@@ -11,6 +11,8 @@ type SocketContextType = {
 	onlineUsers: Set<string>;
 	initSocket: (opts: { userId: string; token?: string }) => void;
 	disconnectSocket: () => void;
+	isCallActive?: boolean;
+	setIsCallActive: (active: boolean) => void;
 };
 
 const SocketContext = createContext<SocketContextType>({
@@ -19,11 +21,13 @@ const SocketContext = createContext<SocketContextType>({
 	onlineUsers: new Set(),
 	initSocket: () => {},
 	disconnectSocket: () => {},
+	setIsCallActive: () => {},
 });
 
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
+	const [isCallActive, setIsCallActive] = useState(false);
 	const { logout } = useAuth();
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
@@ -131,6 +135,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 				onlineUsers,
 				initSocket,
 				disconnectSocket,
+				isCallActive,
+				setIsCallActive,
 			}}
 		>
 			{children}

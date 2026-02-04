@@ -54,6 +54,8 @@ export default function HomeScreen() {
 	const [adding, setAdding] = useState(false);
 	const [aliasModalVisible, setAliasModalVisible] = useState(false);
 	const [aliasInput, setAliasInput] = useState("");
+	const [searchQuery, setSearchQuery] = useState("");
+	const [isFocused, setIsFocused] = useState(false);
 
 	useEffect(() => {
 		if (token === null) return;
@@ -298,12 +300,49 @@ export default function HomeScreen() {
 				</View>
 			) : (
 				<FlatList
-					data={contacts}
+					data={contacts.filter((contact) => {
+						const query = searchQuery.trim().toLowerCase();
+						if (!query) return true;
+						return contact.alias?.toLowerCase().includes(query);
+					})}
 					keyExtractor={(item: any) =>
 						item.user || String(Math.random())
 					}
 					renderItem={renderContactItem}
 					contentContainerStyle={styles.listContent}
+					keyboardShouldPersistTaps="always"
+					ListHeaderComponent={
+						<View style={styles.searchContainer}>
+							<Ionicons
+								name="search-outline"
+								size={18}
+								color="#888"
+							/>
+							<TextInput
+								placeholder="Enter alias"
+								placeholderTextColor="#888"
+								caretHidden={searchQuery === ""}
+								value={searchQuery}
+								onChangeText={setSearchQuery}
+								style={styles.searchInput}
+								autoCapitalize="none"
+							/>
+							{searchQuery.length > 0 && (
+								<TouchableOpacity
+									onPress={() => {
+										setSearchQuery("");
+									}}
+									accessibilityLabel="Empty search"
+								>
+									<Ionicons
+										name="close-circle"
+										size={22}
+										color="gray"
+									/>
+								</TouchableOpacity>
+							)}
+						</View>
+					}
 					ListEmptyComponent={
 						<View style={styles.emptyContainer}>
 							<Ionicons
@@ -410,7 +449,7 @@ export default function HomeScreen() {
 							value={aliasInput}
 							onChangeText={setAliasInput}
 							style={styles.input}
-							autoCapitalize="words"
+							autoCapitalize="none"
 						/>
 
 						<View style={styles.modalActions}>
@@ -494,6 +533,23 @@ const styles = StyleSheet.create({
 	},
 	contactInfo: {
 		flex: 1,
+	},
+	searchContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#161616",
+		borderRadius: 16,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderWidth: 1,
+		borderColor: "#222",
+		marginBottom: 16,
+		gap: 10,
+	},
+	searchInput: {
+		flex: 1,
+		color: "#fff",
+		fontSize: 15,
 	},
 	contactAlias: {
 		color: Colors.text,

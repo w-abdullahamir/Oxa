@@ -13,7 +13,10 @@
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
 		"ios": {
-			"supportsTablet": true
+			"supportsTablet": true,
+			"runtimeVersion": {
+				"policy": "appVersion"
+			}
 		},
 		"android": {
 			"adaptiveIcon": {
@@ -32,7 +35,8 @@
 				"android.permission.FOREGROUND_SERVICE",
 				"android.permission.FOREGROUND_SERVICE_MICROPHONE",
 				"android.permission.FOREGROUND_SERVICE_CAMERA"
-			]
+			],
+			"runtimeVersion": "1.0.0"
 		},
 		"plugins": [
 			"./withAndroidSplits",
@@ -56,7 +60,8 @@
 						"compileSdkVersion": 35,
 						"targetSdkVersion": 35,
 						"enableProguardInReleaseBuilds": true,
-						"enableShrinkResourcesInReleaseBuilds": true
+						"enableShrinkResourcesInReleaseBuilds": true,
+						"enableMinifyInReleaseBuilds": true
 					}
 				}
 			],
@@ -78,6 +83,9 @@
 				"projectId": "bfbb4498-42c2-4e97-b775-a81d01f98c92"
 			}
 		},
-		"owner": "hsk9wjns"
+		"owner": "hsk9wjns",
+		"updates": {
+			"url": "https://u.expo.dev/bfbb4498-42c2-4e97-b775-a81d01f98c92"
+		}
 	}
 }

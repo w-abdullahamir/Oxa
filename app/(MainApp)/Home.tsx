@@ -83,15 +83,13 @@ export default function HomeScreen() {
 
 	const fetchIceConfig = async () => {
 		try {
-			if (!iceServers) {
-				const res = await axios.get(
-					`${BASE_URL}${API_ENDPOINTS.ICE_SERVERS}`,
-					{
-						headers: { Authorization: `Bearer ${token}` },
-					}
-				);
-				setIceServers(res.data);
-			}
+			const res = await axios.get(
+				`${BASE_URL}${API_ENDPOINTS.ICE_SERVERS}`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				}
+			);
+			setIceServers(res.data);
 		} catch (error) {
 			console.error("Failed to fetch ICE servers", error);
 		}

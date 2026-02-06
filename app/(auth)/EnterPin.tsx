@@ -68,7 +68,7 @@ export default function EnterPinScreen() {
 					text1: "Password updated!",
 					position: "top",
 				});
-				router.replace("./login");
+				router.replace("./Login");
 			} else {
 				Toast.show({
 					type: "error",
@@ -131,6 +131,7 @@ export default function EnterPinScreen() {
 				secureTextEntry
 				placeholder="New password"
 				placeholderTextColor="#999"
+				autoCapitalize="none"
 				style={styles.input}
 			/>
 

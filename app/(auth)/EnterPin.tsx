@@ -2,7 +2,8 @@ import { Colors } from "@/constants/Colors";
 import { API_ENDPOINTS, BASE_URL } from "@/constants/Endpoints";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
 	ActivityIndicator,
 	StyleSheet,
@@ -16,15 +17,26 @@ import Toast from "react-native-toast-message";
 export default function EnterPinScreen() {
 	const router = useRouter();
 	const { email } = useLocalSearchParams();
-	const [pin, setPin] = useState("");
-	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
+	const passwordRef = useRef<TextInput>(null);
+
+	type ResetPinFormData = {
+		resetPin: number;
+		password: string;
+	};
+
+	const {
+		control,
+		handleSubmit,
+		formState: { errors },
+	} = useForm<ResetPinFormData>();
 
 	const prepareNextScreen = (path: string) => {
 		setLoading(true);
 		try {
 			router.replace(path as any);
 		} catch (error) {
+			console.error("Navigation error:", error);
 			Toast.show({
 				type: "error",
 				text1: "Navigation Error",
@@ -35,49 +47,51 @@ export default function EnterPinScreen() {
 		}
 	};
 
-	const handleResetPassword = async () => {
-		if (password.length < 6) {
-			Toast.show({
-				type: "error",
-				text1: "Password must be atleast 6 charachters",
-				position: "top",
-			});
-			return;
-		}
-		if (!pin) {
-			Toast.show({
-				type: "error",
-				text1: "Enter PIN",
-				position: "top",
-			});
-			return;
-		}
+	const handleResetPassword = async (data: ResetPinFormData) => {
 		setLoading(true);
 		try {
-			const res = await axios.post(
+			await axios.post(
 				`${BASE_URL}${API_ENDPOINTS.RESET_PASSWORD}`,
-				{ token: pin, password },
+				{ token: data.resetPin, password: data.password },
 				{
 					headers: { "Content-Type": "application/json" },
 				}
 			);
 
-			if (res.data.success) {
-				Toast.show({
-					type: "success",
-					text1: "Password updated!",
-					position: "top",
-				});
-				router.replace("./Login");
-			} else {
+			Toast.show({
+				type: "success",
+				text1: "Password updated!",
+				position: "top",
+			});
+			router.replace("./Login");
+		} catch (err: any) {
+			if (err.response?.status === 400) {
+				console.error(
+					"Password reset error details:",
+					err.response.data
+				);
 				Toast.show({
 					type: "error",
 					text1: "Password reset failed",
-					text2: res.data.message,
+					text2: "Invalid or expired reset code",
 					position: "top",
 				});
+				return;
+			} else if (err.response?.status === 404) {
+				console.error(
+					"Password reset error details:",
+					err.response.data
+				);
+				Toast.show({
+					type: "error",
+					text1: "Reset Failed",
+					text2: "User not found. Please check your email and try again.",
+					position: "top",
+				});
+				return;
 			}
-		} catch (err) {
+
+			console.error("Password reset error:", err);
 			Toast.show({
 				type: "error",
 				text1: "Server Error",
@@ -115,32 +129,65 @@ export default function EnterPinScreen() {
 				</Text>
 			</View>
 
-			<TextInput
-				value={pin}
-				onChangeText={setPin}
-				keyboardType="number-pad"
-				placeholder="Enter 6-digit PIN"
-				placeholderTextColor="#999"
-				maxLength={6}
-				style={styles.input}
+			<Controller
+				control={control}
+				name="resetPin"
+				rules={{
+					required: "PIN is required",
+					minLength: { value: 6, message: "PIN must be 6 digits" },
+					maxLength: { value: 6, message: "PIN must be 6 digits" },
+					pattern: {
+						value: /^\d{6}$/,
+						message: "PIN must be numeric",
+					},
+				}}
+				render={({ field: { onChange, onBlur, value } }) => (
+					<TextInput
+						style={styles.input}
+						placeholder="Enter 6-digit PIN"
+						placeholderTextColor={Colors.placeHolder}
+						keyboardType="number-pad"
+						value={value?.toString()}
+						onChangeText={onChange}
+						onBlur={onBlur}
+						returnKeyType="next"
+						onSubmitEditing={() => passwordRef.current?.focus()}
+					/>
+				)}
 			/>
-
-			<TextInput
-				value={password}
-				onChangeText={setPassword}
-				secureTextEntry
-				placeholder="New password"
-				placeholderTextColor="#999"
-				autoCapitalize="none"
-				style={styles.input}
+			{typeof errors.resetPin?.message === "string" && (
+				<Text style={styles.error}>{errors.resetPin.message}</Text>
+			)}
+			<Controller
+				control={control}
+				name="password"
+				rules={{ required: "Password is required", minLength: 8 }}
+				render={({ field: { onChange, onBlur, value } }) => (
+					<TextInput
+						ref={passwordRef}
+						style={styles.input}
+						placeholder="Password"
+						placeholderTextColor={Colors.placeHolder}
+						secureTextEntry
+						value={value}
+						onChangeText={onChange}
+						onBlur={onBlur}
+						returnKeyType="done"
+						onSubmitEditing={handleSubmit(handleResetPassword)}
+						autoCapitalize="none"
+					/>
+				)}
 			/>
+			{typeof errors.password?.message === "string" && (
+				<Text style={styles.error}>{errors.password.message}</Text>
+			)}
 
 			{loading ? (
 				<ActivityIndicator style={styles.loader} color={Colors.tint} />
 			) : (
 				<TouchableOpacity
 					style={styles.button}
-					onPress={handleResetPassword}
+					onPress={handleSubmit(handleResetPassword)}
 				>
 					<Text style={styles.buttonText}>Reset Password</Text>
 				</TouchableOpacity>
@@ -207,5 +254,11 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		textAlign: "center",
 		textDecorationLine: "underline",
+	},
+
+	error: {
+		color: Colors.error,
+		marginBottom: 12,
+		fontSize: 13,
 	},
 });

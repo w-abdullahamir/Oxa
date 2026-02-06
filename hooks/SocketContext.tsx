@@ -116,6 +116,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 				await logout();
 				router.replace("/(auth)/Login");
 			} catch (error) {
+				console.error("Error handling session termination:", error);
 				router.replace("/(auth)/Login");
 			}
 		});

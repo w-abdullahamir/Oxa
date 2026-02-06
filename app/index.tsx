@@ -40,6 +40,7 @@ export default function MainAppLayout() {
 				}
 				router.replace("./(MainApp)/Home");
 			} catch (error) {
+				console.error("Session verification error:", error);
 				Toast.show({
 					type: "error",
 					text1: "Session Expired",

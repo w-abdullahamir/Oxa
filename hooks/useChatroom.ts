@@ -29,7 +29,9 @@ export const useChatRoom = (socket: Socket | null, roomId: string | null) => {
 		return () => {
 			try {
 				socket.emit("room:leave", { roomId });
-			} catch (e) {}
+			} catch (e) {
+				console.error("Error leaving room:", e);
+			}
 			socket.off("room:peers", onRoomPeers);
 			socket.off("room:user-joined", onUserJoined);
 			socket.off("room:user-left", onUserLeft);

@@ -62,7 +62,13 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					);
 					try {
 						pcRef.current.close();
-					} catch (e) {}
+					} catch (e) {
+						console.warn(
+							mobileModel,
+							"Error closing existing PeerConnection:",
+							e
+						);
+					}
 					pcRef.current = null;
 				}
 			}
@@ -281,7 +287,9 @@ export default function useWebRTC(ICE_SERVERS: any) {
 		}
 		try {
 			dcRef.current?.close?.();
-		} catch (e) {}
+		} catch (e) {
+			console.warn(mobileModel, "Error closing DataChannel:", e);
+		}
 		pcRef.current = null;
 		dcRef.current = null;
 		iceQueueRef.current = [];
@@ -563,7 +571,12 @@ export default function useWebRTC(ICE_SERVERS: any) {
 					socket.emit("room:leave", {
 						roomId: roomRef.current ?? null,
 					});
-				} catch {}
+				} catch {
+					console.warn(
+						mobileModel,
+						"Error emitting room:leave on cleanup"
+					);
+				}
 				socket.off("registered", onRegistered);
 				socket.off("room:sync", onRoomPeers);
 				socket.off("room:user-joined", onRoomUserJoined);

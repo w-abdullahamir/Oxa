@@ -17,7 +17,7 @@ interface AuthContextProps {
 	token: string | null;
 	loading: boolean;
 	login: (username: string, password: string) => Promise<boolean>;
-	logout: () => Promise<boolean>;
+	logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextProps>({
@@ -63,14 +63,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					},
 				}
 			);
-			if (res.data.success) {
-				const token = res.data.token;
-				await saveToken(token);
-				setToken(token);
-				return true;
-			} else {
-				return false;
-			}
+			const token = res.data.token;
+			await saveToken(token);
+			setToken(token);
+			return true;
 		} catch (error) {
 			throw error;
 		}
@@ -90,14 +86,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			);
 			await removeToken();
 			setToken(null);
-			return true;
 		} catch (error) {
 			console.error("Logout error:", error);
 			try {
 				await removeToken();
-			} catch {}
-			setToken(null);
-			return false;
+				setToken(null);
+			} catch {
+				throw error;
+			}
+			throw error;
 		}
 	};
 

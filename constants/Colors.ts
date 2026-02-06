@@ -12,4 +12,5 @@ export const Colors = {
 	error: "#FF6B6B", // soft red for errors
 	success: "#4CD964", // green for success
 	borderColor: "grey",
+	placeHolder: "#666", // softer placeholder text
 };

@@ -80,12 +80,12 @@
 		"extra": {
 			"router": {},
 			"eas": {
-				"projectId": "bfbb4498-42c2-4e97-b775-a81d01f98c92"
+				"projectId": "b941b228-60d3-4379-88d9-f041a8505a81"
 			}
 		},
-		"owner": "hsk9wjns",
+		"owner": "oxa-messenger",
 		"updates": {
-			"url": "https://u.expo.dev/bfbb4498-42c2-4e97-b775-a81d01f98c92"
+			"url": "https://u.expo.dev/b941b228-60d3-4379-88d9-f041a8505a81"
 		}
 	}
 }

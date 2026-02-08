@@ -158,9 +158,9 @@ export default function HomeScreen() {
 
 				<View style={styles.contactInfo}>
 					<Text style={styles.contactAlias}>{alias}</Text>
-					<Text style={styles.contactStatus}>
-						{isOnline ? "Active now" : "Offline"}
-					</Text>
+					{isOnline && (
+						<Text style={styles.contactStatus}>Active now</Text>
+					)}
 				</View>
 
 				<Ionicons name="chevron-forward" size={18} color="#555" />

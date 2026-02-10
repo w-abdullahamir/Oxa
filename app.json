@@ -2,11 +2,12 @@
 	"expo": {
 		"name": "Oxa",
 		"slug": "oxa",
+		"version": "1.0.0",
+		"runtimeVersion": "1.0.0",
 		"description": "A lightweight, fast, and secure mobile app built with React Native, optimized for performance and smooth user experience.",
 		"platforms": ["ios", "android"],
 		"backgroundColor": "#000000",
 		"jsEngine": "hermes",
-		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/adaptive-icon.png",
 		"scheme": "oxa",
@@ -14,9 +15,7 @@
 		"newArchEnabled": true,
 		"ios": {
 			"supportsTablet": true,
-			"runtimeVersion": {
-				"policy": "appVersion"
-			}
+			"bundleIdentifier": "com.OxaMessenger.Oxa"
 		},
 		"android": {
 			"adaptiveIcon": {
@@ -24,7 +23,7 @@
 				"backgroundColor": "#000000"
 			},
 			"edgeToEdgeEnabled": false,
-			"package": "com.hsk9wjns.Oxa",
+			"package": "com.OxaMessenger.Oxa",
 			"permissions": [
 				"android.permission.CAMERA",
 				"android.permission.RECORD_AUDIO",
@@ -35,8 +34,7 @@
 				"android.permission.FOREGROUND_SERVICE",
 				"android.permission.FOREGROUND_SERVICE_MICROPHONE",
 				"android.permission.FOREGROUND_SERVICE_CAMERA"
-			],
-			"runtimeVersion": "1.0.0"
+			]
 		},
 		"plugins": [
 			"./withAndroidSplits",
@@ -80,7 +78,7 @@
 		"extra": {
 			"router": {},
 			"eas": {
-				"projectId": "b941b228-60d3-4379-88d9-f041a8505a81"
+				"projectId": "c69dad84-1bc4-46ac-8566-5299d9fd1086"
 			}
 		},
 		"owner": "oxa-messenger",

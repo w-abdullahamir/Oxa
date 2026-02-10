@@ -2,8 +2,8 @@
   "expo": {
     "name": "Oxa",
     "slug": "oxa",
-    "version": "1.0.0",
-    "runtimeVersion": "1.0.0",
+    "version": "1.1.0",
+    "runtimeVersion": "1.1.0",
     "description": "A lightweight, fast, and secure mobile app built with React Native, optimized for performance and smooth user experience.",
     "platforms": [
       "ios",

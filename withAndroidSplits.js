@@ -8,7 +8,7 @@ module.exports = function withAndroidSplits(config) {
         abi {
             enable true
             reset()
-            include "arm64-v8a", "x86_64"
+            include "arm64-v8a"
             universalApk false
         }
     }`;

@@ -1,7 +1,15 @@
 const madge = require('madge');
 const fs = require('fs');
+const path = require('path');
 const { execSync } = require('child_process');
 
+// Prepare output directory for graph artifacts
+const outputDir = path.join('assets', 'graph');
+if (!fs.existsSync(outputDir)) {
+	fs.mkdirSync(outputDir, { recursive: true });
+}
+
+// Dependency analysis settings
 const config = {
 	tsConfig: './tsconfig.json',
 	fileExtensions: ['ts', 'tsx', 'js', 'jsx'],
@@ -12,31 +20,34 @@ const config = {
 madge('./', config).then((res) => {
 	const tree = res.obj();
 
-	// 1. HEADER (Including your requested ELK layout)
+	// Initialize Mermaid syntax with ELK layout for cleaner edge routing
 	let mermaid = `---\nconfig:\n  layout: elk\n---\ngraph TD\n`;
 
+	// Helper to turn file paths into valid Mermaid node IDs
 	const sanitize = (name) => name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
 
-	const groups = { Screens: [], Auth: [], Hooks: [], Utils: [], Other: [] };
+	const groups = {};
 
+	// Map files to their respective folders for subgraph grouping
 	Object.keys(tree).forEach(file => {
 		const id = sanitize(file);
 		const label = file.replace(/\.[^/.]+$/, "");
 		const entry = `    ${id}["${label}"]`;
 
-		if (file.includes('(MainApp)')) groups.Screens.push(entry);
-		else if (file.includes('(auth)')) groups.Auth.push(entry);
-		else if (file.includes('hooks/')) groups.Hooks.push(entry);
-		else if (file.includes('utils/')) groups.Utils.push(entry);
-		else groups.Other.push(entry);
+		const dirName = path.dirname(file);
+		const groupKey = (dirName === '.' || dirName === '') ? 'ProjectRoot' : dirName;
+
+		if (!groups[groupKey]) groups[groupKey] = [];
+		groups[groupKey].push(entry);
 	});
 
-	for (const [group, nodes] of Object.entries(groups)) {
-		if (nodes.length > 0) {
-			mermaid += `  subgraph ${group}\n${nodes.join('\n')}\n  end\n`;
-		}
+	// Generate subgraphs dynamically based on discovered folder structure
+	for (const [groupPath, nodes] of Object.entries(groups)) {
+		const groupName = groupPath.replace(/[^a-zA-Z0-9]/g, "_");
+		mermaid += `  subgraph ${groupName} ["${groupPath}"]\n${nodes.join('\n')}\n  end\n`;
 	}
 
+	// Convert dependency tree into Mermaid connection arrows
 	Object.keys(tree).forEach(file => {
 		const sourceId = sanitize(file);
 		tree[file].forEach(dep => {
@@ -45,16 +56,18 @@ madge('./', config).then((res) => {
 		});
 	});
 
-	// 2. SAVE THE .MMD FILE
-	fs.writeFileSync('architecture.mmd', mermaid);
-	console.log('✅ architecture.mmd generated.');
+	const mmdPath = path.join(outputDir, 'architecture.mmd');
+	const svgPath = path.join(outputDir, 'architecture.svg');
 
-	// 3. GENERATE THE .SVG LOCALLY
+	// Persist the Mermaid source text
+	fs.writeFileSync(mmdPath, mermaid);
+	console.log(`✅ architecture.mmd generated in ${outputDir}`);
+
+	// Trigger Mermaid CLI to render the SVG file
 	try {
 		console.log('🎨 Generating SVG diagram...');
-		// We use npx to ensure we use the local version we just installed
-		execSync('npx mmdc -i architecture.mmd -o architecture.svg -b white');
-		console.log('🚀 Success! architecture.svg is ready.');
+		execSync(`npx mmdc -i "${mmdPath}" -o "${svgPath}" -b white`);
+		console.log(`🚀 Success! architecture.svg is ready in ${outputDir}`);
 	} catch (error) {
 		console.error('❌ Failed to generate SVG. Make sure @mermaid-js/mermaid-cli is installed.');
 		console.error(error.message);

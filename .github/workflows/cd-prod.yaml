@@ -60,7 +60,7 @@ jobs:
           token: ${{ secrets.EXPO_PAT }}
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
 
       # 1. SHIP OTA UPDATE (Instant update for existing users)
       - name: ☁️ Publish OTA Update

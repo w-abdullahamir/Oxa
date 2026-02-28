@@ -20,25 +20,46 @@ const config = {
 madge('./', config).then((res) => {
 	const tree = res.obj();
 
-	// Initialize Mermaid syntax with ELK layout for cleaner edge routing
-	let mermaid = `---\nconfig:\n  layout: elk\n---\ngraph TD\n`;
+	// Configuration for spacing and layout
+	let mermaid = `---\nconfig:\n  layout: elk\n  elk:\n    direction: RIGHT\n    nodePlacementStrategy: BRANDES_KOEPF\n    spacing.nodeNode: 100\n    spacing.componentComponent: 150\n---\ngraph LR\n`;
 
-	// Helper to turn file paths into valid Mermaid node IDs
+	// High-visibility Node Styles
+	mermaid += `
+    classDef screen fill:#f9f,stroke:#333,stroke-width:3px;
+    classDef hook fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef service fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef utils fill:#fff,stroke:#333,stroke-dasharray: 5 5;
+    \n`;
+
 	const sanitize = (name) => name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
-
 	const groups = {};
+	const ignoredFolders = ['constants', 'node_modules', 'App'];
 
-	// Map files to their respective folders for subgraph grouping
-	Object.keys(tree).forEach(file => {
+	// Track links for custom styling
+	let linkCounter = 0;
+	const linkStyles = [];
+
+	const filteredFiles = Object.keys(tree).filter(file => {
+		const dirName = path.dirname(file);
+		const isIgnoredFolder = ignoredFolders.some(folder => file.startsWith(folder));
+		const isConfig = file.includes('.config') || file.includes('tsconfig');
+		const isRootFile = dirName === '.' || dirName === '';
+		return !isIgnoredFolder && !isConfig && !isRootFile;
+	});
+
+	filteredFiles.forEach(file => {
 		const id = sanitize(file);
 		const label = file.replace(/\.[^/.]+$/, "");
-		const entry = `    ${id}["${label}"]`;
+		let entry = `    ${id}["${label}"]`;
+
+		if (file.includes('app/')) entry += `:::screen`;
+		else if (file.includes('hooks/')) entry += `:::hook`;
+		else if (file.includes('services/')) entry += `:::service`;
+		else if (file.includes('utils/')) entry += `:::utils`;
 
 		const dirName = path.dirname(file);
-		const groupKey = (dirName === '.' || dirName === '') ? 'ProjectRoot' : dirName;
-
-		if (!groups[groupKey]) groups[groupKey] = [];
-		groups[groupKey].push(entry);
+		if (!groups[dirName]) groups[dirName] = [];
+		groups[dirName].push(entry);
 	});
 
 	// Generate subgraphs dynamically based on discovered folder structure
@@ -47,14 +68,33 @@ madge('./', config).then((res) => {
 		mermaid += `  subgraph ${groupName} ["${groupPath}"]\n${nodes.join('\n')}\n  end\n`;
 	}
 
-	// Convert dependency tree into Mermaid connection arrows
-	Object.keys(tree).forEach(file => {
+	/**
+	 * RELATIONSHIPS WITH BOLD COLORED ARROWS
+	 */
+	filteredFiles.forEach(file => {
 		const sourceId = sanitize(file);
 		tree[file].forEach(dep => {
-			const targetId = sanitize(dep);
-			mermaid += `    ${sourceId} --> ${targetId}\n`;
+			if (filteredFiles.includes(dep)) {
+				const targetId = sanitize(dep);
+				mermaid += `    ${sourceId} --> ${targetId}\n`;
+
+				// We increase stroke-width to 3px for maximum visibility
+				if (dep.includes('services/')) {
+					linkStyles.push(`linkStyle ${linkCounter} stroke:#2ecc71,stroke-width:3px`); // Bold Green
+				} else if (dep.includes('hooks/')) {
+					linkStyles.push(`linkStyle ${linkCounter} stroke:#3498db,stroke-width:3px`); // Bold Blue
+				} else if (dep.includes('app/')) {
+					linkStyles.push(`linkStyle ${linkCounter} stroke:#e67e22,stroke-width:3px`); // Bold Orange
+				} else {
+					linkStyles.push(`linkStyle ${linkCounter} stroke:#999,stroke-width:2px`);    // Standard Gray
+				}
+
+				linkCounter++;
+			}
 		});
 	});
+
+	mermaid += `\n    ${linkStyles.join('\n    ')}`;
 
 	const mmdPath = path.join(outputDir, 'architecture.mmd');
 	const svgPath = path.join(outputDir, 'architecture.svg');

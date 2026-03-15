@@ -28,6 +28,7 @@ interface AuthContextProps {
 	logout: () => Promise<void>;
 	forgotPassword: (data: { email: string }) => Promise<void>;
 	resetPassword: (data: {
+		email: string;
 		resetPin: string;
 		password: string;
 	}) => Promise<void>;
@@ -111,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	}, []);
 
 	const resetPassword = useCallback(
-		async (data: { resetPin: string; password: string }) => {
+		async (data: { email: string; resetPin: string; password: string }) => {
 			await axios.post(
 				`${BASE_URL}${API_ENDPOINTS.RESET_PASSWORD}`,
 				data

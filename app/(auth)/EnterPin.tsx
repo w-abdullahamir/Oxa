@@ -13,7 +13,12 @@ import { useForm } from "react-hook-form";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Toast from "react-native-toast-message";
 
-const EnterPinForm = memo(() => {
+interface EnterPinFormProps {
+	isDisabled: boolean;
+}
+
+const EnterPinForm = memo(({ isDisabled }: EnterPinFormProps) => {
+	const { email } = useLocalSearchParams();
 	const router = useRouter();
 	const { resetPassword } = useAuth();
 
@@ -25,7 +30,7 @@ const EnterPinForm = memo(() => {
 		formState: { errors },
 	} = useForm({
 		mode: "onTouched",
-		defaultValues: { resetPin: "", password: "" },
+		defaultValues: { email: email as string, resetPin: "", password: "" },
 	});
 
 	const handleSuccess = useCallback(() => {
@@ -96,38 +101,56 @@ const EnterPinForm = memo(() => {
 
 			<ErrorMessage message={serverError || ""} isServer />
 
-			<SubmitButton
-				loading={loading}
-				onPress={handleSubmit(submitHandler)}
-				title="Reset Password"
-				testID="resetPasswordSubmitButton"
-			/>
+			{isDisabled ? null : (
+				<SubmitButton
+					loading={loading}
+					onPress={handleSubmit(submitHandler)}
+					title="Reset Password"
+					testID="resetPasswordSubmitButton"
+				/>
+			)}
 		</View>
 	);
 });
 EnterPinForm.displayName = "EnterPinForm";
 
-const Timer = memo(() => {
-	const [timeLeft, setTimeLeft] = useState(60);
+interface TimerProps {
+	initialTime: number;
+	onExpire: () => void;
+}
+
+const Timer = memo(({ initialTime, onExpire }: TimerProps) => {
+	const [timeLeft, setTimeLeft] = useState(initialTime);
 
 	useEffect(() => {
-		if (timeLeft <= 0) return;
+		if (timeLeft <= 0) {
+			onExpire(); // Notify parent only once
+			return;
+		}
 
 		const timer = setInterval(() => {
 			setTimeLeft((prev) => prev - 1);
 		}, 1000);
 
 		return () => clearInterval(timer);
-	}, [timeLeft]);
+	}, [timeLeft, onExpire]);
+
+	const formatTime = (seconds: number) => {
+		const minutes = Math.floor(seconds / 60);
+		const remainingSeconds = seconds % 60;
+		return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+	};
 
 	return (
 		<View style={styles.timerContainer}>
-			<Text style={[styles.timerText, timeLeft < 10 && { color: "red" }]}>
-				Code expires in: {timeLeft}s
+			<Text style={[styles.timerText, timeLeft < 60 && { color: "red" }]}>
+				{timeLeft > 0
+					? `Code expires in: ${formatTime(timeLeft)}`
+					: "Code has expired"}
 			</Text>
 			{timeLeft === 0 && (
 				<Text style={styles.expiredText}>
-					Code has expired. Please go back.
+					Please go back and request a new code.
 				</Text>
 			)}
 		</View>
@@ -136,8 +159,15 @@ const Timer = memo(() => {
 Timer.displayName = "Timer";
 
 export default function EnterPinScreen() {
+	const [isExpired, setIsExpired] = useState(false); // Only a boolean here
 	const { email } = useLocalSearchParams();
 	const router = useRouter();
+
+	// Use useCallback so the Timer doesn't re-render when this function is passed
+	const handleExpire = useCallback(() => {
+		setIsExpired(true);
+	}, []);
+
 	const goToForgotPassword = useCallback(
 		() => router.replace("/ForgotPassword"),
 		[router]
@@ -149,10 +179,12 @@ export default function EnterPinScreen() {
 				<Text style={styles.text}>A PIN has been sent to:</Text>
 				<Text style={styles.email}>{email}</Text>
 
-				<Timer />
+				{/* Internal state handles the ticking */}
+				<Timer initialTime={10 * 60} onExpire={handleExpire} />
 			</View>
 
-			<EnterPinForm />
+			{/* This now only re-renders ONCE when isExpired changes to true */}
+			<EnterPinForm isDisabled={isExpired} />
 
 			<View style={styles.footer}>
 				<Pressable onPress={goToForgotPassword}>

@@ -18,8 +18,8 @@ type SocketContextType = {
 	disconnectSocket: () => void;
 	isCallActive?: boolean;
 	setIsCallActive: (active: boolean) => void;
-	iceServers: any[] | null;
-	setIceServers: (servers: any[] | null) => void;
+	iceServers: any[];
+	setIceServers: (servers: any[]) => void;
 };
 
 const SocketContext = createContext<SocketContextType>({
@@ -42,7 +42,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 	const [isConnected, setIsConnected] = useState(false);
 	const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 	const socketRef = useRef<Socket | null>(null);
-	const [iceServers, setIceServers] = useState<any[] | null>([]);
+	const [iceServers, setIceServers] = useState<any[]>([]);
 
 	const initSocket = ({
 		userId,

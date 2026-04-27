@@ -189,7 +189,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: Colors.background,
 	},
 	scrollContent: {
 		padding: 20,
@@ -202,28 +202,28 @@ const styles = StyleSheet.create({
 		width: 100,
 		height: 100,
 		borderRadius: 50,
-		backgroundColor: Colors.tint || "#2f95dc",
+		backgroundColor: Colors.tint,
 		justifyContent: "center",
 		alignItems: "center",
 		marginBottom: 12,
 	},
 	avatarText: {
 		fontSize: 40,
-		color: "#fff",
+		color: Colors.text,
 		fontWeight: "bold",
 	},
 	userNameText: {
 		fontSize: 22,
 		fontWeight: "bold",
-		color: "#fff",
+		color: Colors.text,
 	},
 	userEmail: {
 		fontSize: 14,
-		color: "#888",
+		color: Colors.lightGrey,
 		marginTop: 4,
 	},
 	section: {
-		backgroundColor: "#111",
+		backgroundColor: Colors.inputBackground,
 		borderRadius: 16,
 		padding: 16,
 		marginBottom: 20,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 14,
 		fontWeight: "bold",
-		color: "#888",
+		color: Colors.lightGrey,
 		marginBottom: 16,
 		textTransform: "uppercase",
 		letterSpacing: 1,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		paddingVertical: 12,
 		borderBottomWidth: 0.5,
-		borderBottomColor: "#222",
+		borderBottomColor: Colors.darkGrey,
 	},
 	settingTextContainer: {
 		flex: 1,
@@ -255,19 +255,19 @@ const styles = StyleSheet.create({
 	},
 	settingLabel: {
 		fontSize: 16,
-		color: "#fff",
+		color: Colors.text,
 		fontWeight: "600",
 	},
 	settingDescription: {
 		fontSize: 12,
-		color: "#666",
+		color: Colors.placeHolder,
 		lineHeight: 18,
 	},
 	actionButton: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		backgroundColor: "#111",
+		backgroundColor: Colors.veryDarkGrey,
 		padding: 16,
 		borderRadius: 16,
 		marginBottom: 12,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
 	logoutButton: {
 		marginTop: 10,
 		borderWidth: 1,
-		borderColor: "rgba(255, 68, 68, 0.2)",
+		borderColor: Colors.border,
 	},
 	actionLeft: {
 		flexDirection: "row",
@@ -283,11 +283,11 @@ const styles = StyleSheet.create({
 		gap: 12,
 	},
 	actionText: {
-		color: "#fff",
+		color: Colors.text,
 		fontSize: 16,
 		fontWeight: "500",
 	},
 	logoutText: {
-		color: "#ff4444",
+		color: Colors.red,
 	},
 });

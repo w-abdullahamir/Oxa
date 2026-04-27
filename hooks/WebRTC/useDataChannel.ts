@@ -3,19 +3,25 @@ import type { RTCPeerConnection } from "react-native-webrtc";
 
 type DataChannel = ReturnType<RTCPeerConnection["createDataChannel"]>;
 
-export function useDataChannel() {
+export function useDataChannel(onMessageRecieved?: (data: string) => void) {
 	const [chat, setChat] = useState<string[]>([]);
 	const [dcOpen, setDcOpen] = useState<boolean>(false);
 	const dcRef = useRef<DataChannel | null>(null);
 
-	const setupDataChannel = useCallback((channel: any) => {
-		dcRef.current = channel;
-		channel.onopen = () => setDcOpen(true);
-		channel.onclose = () => setDcOpen(false);
-		channel.onerror = (err: any) => console.warn("DataChannel error:", err);
-		channel.onmessage = (ev: any) =>
-			setChat((prev) => [...prev, `${ev.data}`]);
-	}, []);
+	const setupDataChannel = useCallback(
+		(channel: any) => {
+			dcRef.current = channel;
+			channel.onopen = () => setDcOpen(true);
+			channel.onclose = () => setDcOpen(false);
+			channel.onerror = (err: any) =>
+				console.warn("DataChannel error:", err);
+			channel.onmessage = (ev: any) => {
+				setChat((prev) => [...prev, `${ev.data}`]);
+				if (onMessageRecieved) onMessageRecieved(ev.data);
+			};
+		},
+		[onMessageRecieved]
+	);
 
 	const sendChatMessage = useCallback((msg: string): boolean => {
 		if (!msg?.trim()) return false;

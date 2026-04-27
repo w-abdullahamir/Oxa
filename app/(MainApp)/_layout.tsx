@@ -12,7 +12,6 @@ function AppEntry() {
 		<Stack
 			screenOptions={{
 				headerShown: false,
-				contentStyle: { backgroundColor: "white" },
 			}}
 		/>
 	);

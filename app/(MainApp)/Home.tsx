@@ -1,3 +1,4 @@
+import { KeyboardLayout } from "@/components/KeyboardLayout";
 import { Colors } from "@/constants/Colors";
 import { API_ENDPOINTS, BASE_URL } from "@/constants/Endpoints";
 import { useSocket } from "@/hooks/SocketContext";
@@ -18,7 +19,6 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 type Contact = {
@@ -121,7 +121,7 @@ export default function HomeScreen() {
 			console.log("Navigating to chat with", item.user, myId);
 
 			router.push({
-				pathname: "/ChatOneToOne",
+				pathname: "/Chat",
 				params: {
 					userId: String(myId),
 					otherUserId: String(item.user),
@@ -369,13 +369,12 @@ export default function HomeScreen() {
 	};
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<KeyboardLayout>
 			<Stack.Screen
 				options={{
 					headerShown: true,
-					title: "Messages",
+					title: "Oxa",
 					headerLargeTitle: true,
-					headerStyle: { backgroundColor: Colors.background },
 					headerTintColor: Colors.text,
 					headerRight: () => (
 						<TouchableOpacity
@@ -438,7 +437,7 @@ export default function HomeScreen() {
 									<Ionicons
 										name="close-circle"
 										size={22}
-										color="gray"
+										color={Colors.borderColor}
 									/>
 								</TouchableOpacity>
 							)}
@@ -592,7 +591,7 @@ export default function HomeScreen() {
 					</View>
 				</View>
 			</Modal>
-		</SafeAreaView>
+		</KeyboardLayout>
 	);
 }
 
@@ -604,7 +603,7 @@ const styles = StyleSheet.create({
 		backgroundColor: Colors.tint,
 	},
 	modalButtonText: {
-		color: "#fff",
+		color: Colors.text,
 		fontWeight: "bold",
 	},
 	container: {
@@ -619,12 +618,12 @@ const styles = StyleSheet.create({
 	contactCard: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#161616", // Slightly lighter than pure black
+		backgroundColor: Colors.veryDarkGrey, // Slightly lighter than pure black
 		padding: 12,
 		borderRadius: 16,
 		marginBottom: 12,
 		borderWidth: 1,
-		borderColor: "#222",
+		borderColor: Colors.border,
 	},
 	avatar: {
 		width: 50,
@@ -636,7 +635,7 @@ const styles = StyleSheet.create({
 		marginRight: 15,
 	},
 	avatarText: {
-		color: "#fff",
+		color: Colors.text,
 		fontSize: 20,
 		fontWeight: "bold",
 	},
@@ -649,7 +648,7 @@ const styles = StyleSheet.create({
 		bottom: 0,
 		right: 0,
 		borderWidth: 2,
-		borderColor: "#161616",
+		borderColor: Colors.border,
 	},
 	contactInfo: {
 		flex: 1,
@@ -657,18 +656,18 @@ const styles = StyleSheet.create({
 	searchContainer: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#161616",
+		backgroundColor: Colors.veryDarkGrey,
 		borderRadius: 16,
 		paddingHorizontal: 12,
 		paddingVertical: 10,
 		borderWidth: 1,
-		borderColor: "#222",
+		borderColor: Colors.border,
 		marginBottom: 16,
 		gap: 10,
 	},
 	searchInput: {
 		flex: 1,
-		color: "#fff",
+		color: Colors.text,
 		fontSize: 15,
 	},
 	contactAlias: {
@@ -678,7 +677,7 @@ const styles = StyleSheet.create({
 		marginBottom: 2,
 	},
 	contactStatus: {
-		color: "#888",
+		color: Colors.lightGrey,
 		fontSize: 13,
 	},
 	fab: {
@@ -692,7 +691,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		elevation: 5,
-		shadowColor: "#000",
+		shadowColor: Colors.black,
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.3,
 		shadowRadius: 4,
@@ -712,7 +711,8 @@ const styles = StyleSheet.create({
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.7)",
+		backgroundColor: Colors.veryDarkGrey,
+		opacity: 0.7,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -725,14 +725,14 @@ const styles = StyleSheet.create({
 	modalTitle: {
 		fontSize: 20,
 		fontWeight: "bold",
-		color: "#fff",
+		color: Colors.text,
 		marginBottom: 20,
 	},
 	input: {
 		backgroundColor: "#2c2c2c",
 		borderRadius: 12,
 		padding: 14,
-		color: "#fff",
+		color: Colors.text,
 		fontSize: 16,
 		marginBottom: 20,
 	},
@@ -749,12 +749,13 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 	},
 	confirmBtnText: {
-		color: "#fff",
+		color: Colors.text,
 		fontWeight: "600",
 	},
 	sheetOverlay: {
 		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.5)",
+		backgroundColor: Colors.veryDarkGrey,
+		opacity: 0.7,
 		justifyContent: "flex-end",
 	},
 	bottomSheet: {
@@ -767,7 +768,7 @@ const styles = StyleSheet.create({
 	sheetHandle: {
 		width: 40,
 		height: 5,
-		backgroundColor: "#333",
+		backgroundColor: Colors.darkGrey,
 		borderRadius: 3,
 		alignSelf: "center",
 		marginBottom: 20,

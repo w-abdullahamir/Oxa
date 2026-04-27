@@ -2,17 +2,15 @@
 	"expo": {
 		"name": "Oxa",
 		"slug": "oxa",
-		"version": "1.3.0",
-		"runtimeVersion": "1.3.0",
+		"version": "1.4.0",
+		"runtimeVersion": "1.4.0",
 		"description": "A lightweight, fast, and secure mobile app built with React Native, optimized for performance and smooth user experience.",
 		"platforms": ["ios", "android"],
 		"backgroundColor": "#000000",
-		"jsEngine": "hermes",
 		"orientation": "portrait",
 		"icon": "./assets/images/adaptive-icon.png",
 		"scheme": "oxa",
 		"userInterfaceStyle": "automatic",
-		"newArchEnabled": true,
 		"ios": {
 			"supportsTablet": true,
 			"bundleIdentifier": "com.OxaMessenger.Oxa",
@@ -25,7 +23,6 @@
 				"foregroundImage": "./assets/images/adaptive-icon.png",
 				"backgroundColor": "#000000"
 			},
-			"edgeToEdgeEnabled": true,
 			"package": "com.OxaMessenger.Oxa",
 			"permissions": [
 				"android.permission.CAMERA",
@@ -40,15 +37,10 @@
 			]
 		},
 		"plugins": [
-			"./withAndroidSplits",
 			"expo-router",
-			[
-				"@config-plugins/react-native-webrtc",
-				{
-					"cameraPermission": "Allow Oxa to access your camera",
-					"microphonePermission": "Allow Oxa to access your microphone"
-				}
-			],
+			"expo-image-picker",
+			"expo-document-picker",
+			"expo-updates",
 			[
 				"expo-splash-screen",
 				{
@@ -64,21 +56,15 @@
 				"expo-build-properties",
 				{
 					"android": {
+						"buildreactnativefromsource": true,
 						"minSdkVersion": 29,
 						"compileSdkVersion": 36,
 						"targetSdkVersion": 36,
 						"enableProguardInReleaseBuilds": true,
 						"enableShrinkResourcesInReleaseBuilds": true,
-						"enableMinifyInReleaseBuilds": true
+						"enableMinifyInReleaseBuilds": true,
+						"buildArchs": ["arm64-v8a"]
 					}
-				}
-			],
-			[
-				"expo-camera",
-				{
-					"cameraPermissions": "Allow Oxa to access your camera",
-					"microphonePermissions": "Allow Oxa to access your microphone",
-					"recordAudioAndroid": true
 				}
 			]
 		],

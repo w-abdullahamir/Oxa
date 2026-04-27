@@ -6,7 +6,10 @@ import { useDataChannel } from "./WebRTC/useDataChannel";
 import { useMediaStream } from "./WebRTC/useMediaStream";
 import { usePeerConnection } from "./WebRTC/usePeerConnection";
 
-export default function useWebRTC(ICE_SERVERS: any[]) {
+export default function useWebRTC(
+	ICE_SERVERS: any[],
+	onMessageRecieved?: (data: string) => void
+) {
 	const currentRoomId = useRef<string | null>(null);
 	const roomRef = useRef<string | null>(null);
 	const [isOnline, setIsOnline] = useState<boolean>(false);
@@ -21,7 +24,7 @@ export default function useWebRTC(ICE_SERVERS: any[]) {
 		setupDataChannel,
 		sendChatMessage,
 		closeDataChannel,
-	} = useDataChannel();
+	} = useDataChannel(onMessageRecieved);
 	const {
 		pcRef,
 		makingOffer,

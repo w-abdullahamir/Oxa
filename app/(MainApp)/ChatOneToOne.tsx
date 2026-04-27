@@ -1,3 +1,4 @@
+import { KeyboardLayout } from "@/components/KeyboardLayout";
 import { Colors } from "@/constants/Colors";
 import { useSocket } from "@/hooks/SocketContext";
 import { useUserData } from "@/hooks/UserDataContext";
@@ -9,15 +10,12 @@ import React, { useEffect, useRef, useState } from "react";
 import {
 	Alert,
 	FlatList,
-	KeyboardAvoidingView,
-	Platform,
 	StyleSheet,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Socket } from "socket.io-client";
 
 export default function ChatScreen() {
@@ -68,7 +66,14 @@ export default function ChatScreen() {
 			isAttached.current = false;
 			closePeerConnection();
 		};
-	}, [userId, otherUserId, socket]);
+	}, [
+		userId,
+		otherUserId,
+		socket,
+		attachSocket,
+		closePeerConnection,
+		initSocket,
+	]);
 
 	const handleSendMessage = () => {
 		if (!message.trim()) return;
@@ -113,11 +118,10 @@ export default function ChatScreen() {
 	};
 
 	return (
-		<SafeAreaView style={styles.container} edges={["bottom"]}>
+		<KeyboardLayout>
 			<Stack.Screen
 				options={{
 					headerShown: true,
-					headerStyle: { backgroundColor: Colors.background },
 					headerTintColor: Colors.icon,
 					headerTitle: () => (
 						<View style={styles.headerInfo}>
@@ -179,54 +183,47 @@ export default function ChatScreen() {
 				contentContainerStyle={styles.chatList}
 			/>
 
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : undefined}
-				keyboardVerticalOffset={90}
-			>
-				<View style={styles.inputContainer}>
-					<View style={styles.inputWrapper}>
-						<TextInput
-							style={styles.input}
-							value={message}
-							onChangeText={setMessage}
-							placeholder={
-								dcOpen ? "Type a message..." : "Connecting..."
-							}
-							placeholderTextColor={Colors.lightPlaceHolder}
-							multiline
-							testID="messageInput"
-							returnKeyType="send"
-							onSubmitEditing={handleSendMessage}
-							autoFocus
+			<View style={styles.inputContainer}>
+				<View style={styles.inputWrapper}>
+					<TextInput
+						style={styles.input}
+						value={message}
+						onChangeText={setMessage}
+						placeholder={
+							dcOpen ? "Type a message..." : "Connecting..."
+						}
+						placeholderTextColor={Colors.lightPlaceHolder}
+						multiline
+						testID="messageInput"
+						returnKeyType="send"
+						onSubmitEditing={handleSendMessage}
+					/>
+					<TouchableOpacity
+						onPress={handleSendMessage}
+						disabled={!dcOpen || !message.trim()}
+						style={[
+							styles.sendBtn,
+							(!dcOpen || !message.trim()) && {
+								opacity: 0.5,
+							},
+						]}
+						testID="sendMessageButton"
+					>
+						<Ionicons
+							name="send"
+							size={20}
+							color={Colors.sendBtn}
 						/>
-						<TouchableOpacity
-							onPress={handleSendMessage}
-							disabled={!dcOpen || !message.trim()}
-							style={[
-								styles.sendBtn,
-								(!dcOpen || !message.trim()) && {
-									opacity: 0.5,
-								},
-							]}
-							testID="sendMessageButton"
-						>
-							<Ionicons
-								name="send"
-								size={20}
-								color={Colors.sendBtn}
-							/>
-						</TouchableOpacity>
-					</View>
+					</TouchableOpacity>
 				</View>
-			</KeyboardAvoidingView>
-		</SafeAreaView>
+			</View>
+		</KeyboardLayout>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: Colors.background,
 	},
 	headerInfo: {
 		flexDirection: "row",
@@ -290,7 +287,6 @@ const styles = StyleSheet.create({
 	},
 	inputContainer: {
 		padding: 10,
-		backgroundColor: Colors.background,
 	},
 	inputWrapper: {
 		flexDirection: "row",
@@ -315,5 +311,10 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		marginLeft: 8,
+	},
+	scrollContainer: {
+		flexGrow: 1,
+		padding: 24,
+		justifyContent: "center",
 	},
 });

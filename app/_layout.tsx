@@ -6,8 +6,9 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { preventScreenCaptureAsync } from "expo-screen-capture";
 import { hideAsync } from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
@@ -80,13 +81,18 @@ export default function Layout() {
 
 	return (
 		<SafeAreaProvider>
-			<AuthProvider>
-				<ThemeProvider value={DarkTheme}>
-					<StatusBar translucent={false} barStyle={"light-content"} />
-					<RootLayoutNav />
-					<Toast config={toastConfig} />
-				</ThemeProvider>
-			</AuthProvider>
+			<KeyboardProvider>
+				<AuthProvider>
+					<ThemeProvider value={DarkTheme}>
+						<StatusBar
+							translucent={true}
+							barStyle={"light-content"}
+						/>
+						<RootLayoutNav />
+						<Toast config={toastConfig} />
+					</ThemeProvider>
+				</AuthProvider>
+			</KeyboardProvider>
 		</SafeAreaProvider>
 	);
 }
@@ -96,6 +102,5 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "Colors.background",
 	},
 });

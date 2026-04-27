@@ -14,6 +14,13 @@ graph LR
     classDef service fill:#bfb,stroke:#333,stroke-width:2px;
     classDef utils fill:#fff,stroke:#333,stroke-dasharray: 5 5;
     
+  subgraph app__MainApp___Chat_ ["app/(MainApp)/(Chat)"]
+    app__MainApp___Chat__Chat["app/(MainApp)/(Chat)/Chat"]:::screen
+    app__MainApp___Chat__MessageBubble["app/(MainApp)/(Chat)/MessageBubble"]:::screen
+    app__MainApp___Chat__MessageItem["app/(MainApp)/(Chat)/MessageItem"]:::screen
+    app__MainApp___Chat__MessageList["app/(MainApp)/(Chat)/MessageList"]:::screen
+    app__MainApp___Chat___layout["app/(MainApp)/(Chat)/_layout"]:::screen
+  end
   subgraph app__MainApp_ ["app/(MainApp)"]
     app__MainApp__ChatGroupMesh["app/(MainApp)/ChatGroupMesh"]:::screen
     app__MainApp__ChatOneToOne["app/(MainApp)/ChatOneToOne"]:::screen
@@ -32,8 +39,15 @@ graph LR
     app__layout["app/_layout"]:::screen
     app_index["app/index"]:::screen
   end
+  subgraph components_Chat ["components/Chat"]
+    components_Chat_CallOverlay["components/Chat/CallOverlay"]
+    components_Chat_ChatHeader["components/Chat/ChatHeader"]
+    components_Chat_ChatInput["components/Chat/ChatInput"]
+  end
+  subgraph components ["components"]
+    components_KeyboardLayout["components/KeyboardLayout"]
+  end
   subgraph components_auth ["components/auth"]
-    components_auth_AuthLayout["components/auth/AuthLayout"]
     components_auth_AuthUI["components/auth/AuthUI"]
   end
   subgraph hooks ["hooks"]
@@ -41,6 +55,7 @@ graph LR
     hooks_UserDataContext["hooks/UserDataContext"]:::hook
     hooks_useAuth["hooks/useAuth"]:::hook
     hooks_useAuthSubmit["hooks/useAuthSubmit"]:::hook
+    hooks_useChatManager["hooks/useChatManager"]:::hook
     hooks_useChatroom["hooks/useChatroom"]:::hook
     hooks_useNotification["hooks/useNotification"]:::hook
     hooks_useWebRTC["hooks/useWebRTC"]:::hook
@@ -51,22 +66,39 @@ graph LR
     hooks_WebRTC_usePeerConnection["hooks/WebRTC/usePeerConnection"]:::hook
   end
   subgraph services ["services"]
+    services_AttachmentPicker["services/AttachmentPicker"]:::service
     services_api["services/api"]:::service
   end
   subgraph services_crypto ["services/crypto"]
     services_crypto_secureStorage["services/crypto/secureStorage"]:::service
+  end
+  subgraph types ["types"]
+    types_Chat["types/Chat"]
   end
   subgraph utils ["utils"]
     utils_ToastConfig["utils/ToastConfig"]:::utils
     utils_apiErrorHandler["utils/apiErrorHandler"]:::utils
     utils_webrtc["utils/webrtc"]:::utils
   end
+    app__MainApp___Chat__Chat --> app__MainApp___Chat__MessageList
+    app__MainApp___Chat__Chat --> components_Chat_ChatHeader
+    app__MainApp___Chat__Chat --> components_Chat_ChatInput
+    app__MainApp___Chat__Chat --> components_KeyboardLayout
+    app__MainApp___Chat__Chat --> hooks_UserDataContext
+    app__MainApp___Chat__Chat --> hooks_useChatManager
+    app__MainApp___Chat__Chat --> services_AttachmentPicker
+    app__MainApp___Chat__MessageBubble --> types_Chat
+    app__MainApp___Chat__MessageItem --> types_Chat
+    app__MainApp___Chat__MessageList --> app__MainApp___Chat__MessageBubble
+    app__MainApp___Chat__MessageList --> types_Chat
     app__MainApp__ChatGroupMesh --> hooks_SocketContext
     app__MainApp__ChatGroupMesh --> utils_webrtc
+    app__MainApp__ChatOneToOne --> components_KeyboardLayout
     app__MainApp__ChatOneToOne --> hooks_SocketContext
     app__MainApp__ChatOneToOne --> hooks_UserDataContext
     app__MainApp__ChatOneToOne --> hooks_useWebRTC
     app__MainApp__ChatOneToOne --> services_crypto_secureStorage
+    app__MainApp__Home --> components_KeyboardLayout
     app__MainApp__Home --> hooks_SocketContext
     app__MainApp__Home --> hooks_UserDataContext
     app__MainApp__Home --> hooks_useAuth
@@ -76,19 +108,19 @@ graph LR
     app__MainApp___layout --> hooks_SocketContext
     app__MainApp___layout --> hooks_UserDataContext
     app__MainApp___layout --> hooks_useNotification
-    app__auth__EnterPin --> components_auth_AuthLayout
+    app__auth__EnterPin --> components_KeyboardLayout
     app__auth__EnterPin --> components_auth_AuthUI
     app__auth__EnterPin --> hooks_useAuth
     app__auth__EnterPin --> hooks_useAuthSubmit
-    app__auth__ForgotPassword --> components_auth_AuthLayout
+    app__auth__ForgotPassword --> components_KeyboardLayout
     app__auth__ForgotPassword --> components_auth_AuthUI
     app__auth__ForgotPassword --> hooks_useAuth
     app__auth__ForgotPassword --> hooks_useAuthSubmit
-    app__auth__Login --> components_auth_AuthLayout
+    app__auth__Login --> components_KeyboardLayout
     app__auth__Login --> components_auth_AuthUI
     app__auth__Login --> hooks_useAuth
     app__auth__Login --> hooks_useAuthSubmit
-    app__auth__Signup --> components_auth_AuthLayout
+    app__auth__Signup --> components_KeyboardLayout
     app__auth__Signup --> components_auth_AuthUI
     app__auth__Signup --> hooks_useAuth
     app__auth__Signup --> hooks_useAuthSubmit
@@ -99,6 +131,10 @@ graph LR
     hooks_useAuth --> services_api
     hooks_useAuth --> services_crypto_secureStorage
     hooks_useAuthSubmit --> utils_apiErrorHandler
+    hooks_useChatManager --> hooks_SocketContext
+    hooks_useChatManager --> hooks_useWebRTC
+    hooks_useChatManager --> services_crypto_secureStorage
+    hooks_useChatManager --> types_Chat
     hooks_useNotification --> hooks_SocketContext
     hooks_useNotification --> hooks_UserDataContext
     hooks_useWebRTC --> hooks_WebRTC_useDataChannel
@@ -106,47 +142,64 @@ graph LR
     hooks_useWebRTC --> hooks_WebRTC_usePeerConnection
     services_api --> services_crypto_secureStorage
 
-    linkStyle 0 stroke:#3498db,stroke-width:3px
+    linkStyle 0 stroke:#e67e22,stroke-width:3px
     linkStyle 1 stroke:#999,stroke-width:2px
-    linkStyle 2 stroke:#3498db,stroke-width:3px
-    linkStyle 3 stroke:#3498db,stroke-width:3px
+    linkStyle 2 stroke:#999,stroke-width:2px
+    linkStyle 3 stroke:#999,stroke-width:2px
     linkStyle 4 stroke:#3498db,stroke-width:3px
-    linkStyle 5 stroke:#2ecc71,stroke-width:3px
-    linkStyle 6 stroke:#3498db,stroke-width:3px
-    linkStyle 7 stroke:#3498db,stroke-width:3px
-    linkStyle 8 stroke:#3498db,stroke-width:3px
-    linkStyle 9 stroke:#3498db,stroke-width:3px
-    linkStyle 10 stroke:#3498db,stroke-width:3px
+    linkStyle 5 stroke:#3498db,stroke-width:3px
+    linkStyle 6 stroke:#2ecc71,stroke-width:3px
+    linkStyle 7 stroke:#999,stroke-width:2px
+    linkStyle 8 stroke:#999,stroke-width:2px
+    linkStyle 9 stroke:#e67e22,stroke-width:3px
+    linkStyle 10 stroke:#999,stroke-width:2px
     linkStyle 11 stroke:#3498db,stroke-width:3px
-    linkStyle 12 stroke:#3498db,stroke-width:3px
-    linkStyle 13 stroke:#3498db,stroke-width:3px
+    linkStyle 12 stroke:#999,stroke-width:2px
+    linkStyle 13 stroke:#999,stroke-width:2px
     linkStyle 14 stroke:#3498db,stroke-width:3px
-    linkStyle 15 stroke:#999,stroke-width:2px
-    linkStyle 16 stroke:#999,stroke-width:2px
-    linkStyle 17 stroke:#3498db,stroke-width:3px
-    linkStyle 18 stroke:#3498db,stroke-width:3px
-    linkStyle 19 stroke:#999,stroke-width:2px
-    linkStyle 20 stroke:#999,stroke-width:2px
+    linkStyle 15 stroke:#3498db,stroke-width:3px
+    linkStyle 16 stroke:#3498db,stroke-width:3px
+    linkStyle 17 stroke:#2ecc71,stroke-width:3px
+    linkStyle 18 stroke:#999,stroke-width:2px
+    linkStyle 19 stroke:#3498db,stroke-width:3px
+    linkStyle 20 stroke:#3498db,stroke-width:3px
     linkStyle 21 stroke:#3498db,stroke-width:3px
     linkStyle 22 stroke:#3498db,stroke-width:3px
-    linkStyle 23 stroke:#999,stroke-width:2px
-    linkStyle 24 stroke:#999,stroke-width:2px
+    linkStyle 23 stroke:#3498db,stroke-width:3px
+    linkStyle 24 stroke:#3498db,stroke-width:3px
     linkStyle 25 stroke:#3498db,stroke-width:3px
     linkStyle 26 stroke:#3498db,stroke-width:3px
-    linkStyle 27 stroke:#999,stroke-width:2px
+    linkStyle 27 stroke:#3498db,stroke-width:3px
     linkStyle 28 stroke:#999,stroke-width:2px
-    linkStyle 29 stroke:#3498db,stroke-width:3px
+    linkStyle 29 stroke:#999,stroke-width:2px
     linkStyle 30 stroke:#3498db,stroke-width:3px
     linkStyle 31 stroke:#3498db,stroke-width:3px
     linkStyle 32 stroke:#999,stroke-width:2px
-    linkStyle 33 stroke:#3498db,stroke-width:3px
+    linkStyle 33 stroke:#999,stroke-width:2px
     linkStyle 34 stroke:#3498db,stroke-width:3px
-    linkStyle 35 stroke:#2ecc71,stroke-width:3px
-    linkStyle 36 stroke:#2ecc71,stroke-width:3px
+    linkStyle 35 stroke:#3498db,stroke-width:3px
+    linkStyle 36 stroke:#999,stroke-width:2px
     linkStyle 37 stroke:#999,stroke-width:2px
     linkStyle 38 stroke:#3498db,stroke-width:3px
     linkStyle 39 stroke:#3498db,stroke-width:3px
-    linkStyle 40 stroke:#3498db,stroke-width:3px
-    linkStyle 41 stroke:#3498db,stroke-width:3px
+    linkStyle 40 stroke:#999,stroke-width:2px
+    linkStyle 41 stroke:#999,stroke-width:2px
     linkStyle 42 stroke:#3498db,stroke-width:3px
-    linkStyle 43 stroke:#2ecc71,stroke-width:3px
+    linkStyle 43 stroke:#3498db,stroke-width:3px
+    linkStyle 44 stroke:#3498db,stroke-width:3px
+    linkStyle 45 stroke:#999,stroke-width:2px
+    linkStyle 46 stroke:#3498db,stroke-width:3px
+    linkStyle 47 stroke:#3498db,stroke-width:3px
+    linkStyle 48 stroke:#2ecc71,stroke-width:3px
+    linkStyle 49 stroke:#2ecc71,stroke-width:3px
+    linkStyle 50 stroke:#999,stroke-width:2px
+    linkStyle 51 stroke:#3498db,stroke-width:3px
+    linkStyle 52 stroke:#3498db,stroke-width:3px
+    linkStyle 53 stroke:#2ecc71,stroke-width:3px
+    linkStyle 54 stroke:#999,stroke-width:2px
+    linkStyle 55 stroke:#3498db,stroke-width:3px
+    linkStyle 56 stroke:#3498db,stroke-width:3px
+    linkStyle 57 stroke:#3498db,stroke-width:3px
+    linkStyle 58 stroke:#3498db,stroke-width:3px
+    linkStyle 59 stroke:#3498db,stroke-width:3px
+    linkStyle 60 stroke:#2ecc71,stroke-width:3px

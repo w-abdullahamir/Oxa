@@ -1,9 +1,9 @@
-import { AuthLayout } from "@/components/auth/AuthLayout";
 import {
 	ErrorMessage,
 	FormInput,
 	SubmitButton,
 } from "@/components/auth/AuthUI";
+import { KeyboardLayout } from "@/components/KeyboardLayout";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthSubmit } from "@/hooks/useAuthSubmit";
@@ -94,7 +94,8 @@ export default function Login() {
 	const goToSignup = useCallback(() => router.replace("/Signup"), [router]);
 
 	return (
-		<AuthLayout title="Login">
+		<KeyboardLayout>
+			<Text style={styles.title}>Login</Text>
 			<LoginFormFields />
 
 			<View style={styles.footer}>
@@ -109,11 +110,18 @@ export default function Login() {
 					<Text style={styles.link}> Signup</Text>
 				</Pressable>
 			</View>
-		</AuthLayout>
+		</KeyboardLayout>
 	);
 }
 
 const styles = StyleSheet.create({
+	title: {
+		fontSize: 22,
+		fontWeight: "bold",
+		textAlign: "center",
+		marginBottom: 32,
+		color: Colors.text,
+	},
 	footer: {
 		flexDirection: "row",
 		justifyContent: "center",

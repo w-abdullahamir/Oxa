@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/Colors";
 import { Stack } from "expo-router";
 
 export default function Layout() {
@@ -5,6 +6,10 @@ export default function Layout() {
 		<Stack
 			screenOptions={{
 				headerShown: false,
+				contentStyle: {
+					paddingHorizontal: 24,
+					backgroundColor: Colors.background,
+				},
 			}}
 		/>
 	);

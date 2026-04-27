@@ -1,4 +1,4 @@
-import { AuthLayout } from "@/components/auth/AuthLayout";
+import { KeyboardLayout } from "@/components/KeyboardLayout";
 import {
 	ErrorMessage,
 	FormInput,
@@ -174,7 +174,8 @@ export default function EnterPinScreen() {
 	);
 
 	return (
-		<AuthLayout title="Reset Your Password">
+		<KeyboardLayout>
+			<Text style={styles.title}>Reset Your Password</Text>
 			<View style={styles.body}>
 				<Text style={styles.text}>A PIN has been sent to:</Text>
 				<Text style={styles.email}>{email}</Text>
@@ -191,12 +192,19 @@ export default function EnterPinScreen() {
 					<Text style={styles.backText}>Wrong email? Go back</Text>
 				</Pressable>
 			</View>
-		</AuthLayout>
+		</KeyboardLayout>
 	);
 }
 
 const styles = StyleSheet.create({
 	body: { marginBottom: 20 },
+	title: {
+		fontSize: 22,
+		fontWeight: "bold",
+		textAlign: "center",
+		marginBottom: 32,
+		color: Colors.text,
+	},
 	text: {
 		color: Colors.icon,
 		fontSize: 16,

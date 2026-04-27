@@ -1,4 +1,4 @@
-import { AuthLayout } from "@/components/auth/AuthLayout";
+import { KeyboardLayout } from "@/components/KeyboardLayout";
 import {
 	ErrorMessage,
 	FormInput,
@@ -80,7 +80,8 @@ export default function ForgotPasswordScreen() {
 	const goToLogin = useCallback(() => router.replace("/Login"), [router]);
 
 	return (
-		<AuthLayout title="Forgot Password">
+		<KeyboardLayout>
+			<Text style={styles.title}>Forgot Password</Text>
 			<ForgotPasswordForm />
 
 			<Pressable onPress={goToLogin}>
@@ -88,11 +89,18 @@ export default function ForgotPasswordScreen() {
 					Remember your password? Log in
 				</Text>
 			</Pressable>
-		</AuthLayout>
+		</KeyboardLayout>
 	);
 }
 
 const styles = StyleSheet.create({
+	title: {
+		fontSize: 22,
+		fontWeight: "bold",
+		textAlign: "center",
+		marginBottom: 32,
+		color: Colors.text,
+	},
 	rememberedText: {
 		color: Colors.icon,
 		textAlign: "center",

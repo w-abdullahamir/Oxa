@@ -1,2 +1,21 @@
+# Build Artifacts
 android/
+ios/
+
+# Environment and Secrets
+.env*
+node_modules/
+
+# IDE and System Files
+.vscode/
 .editorconfig
+.github/
+**/*.bat
+
+# Project Specific
+scripts/
+generate_graph_tree.js
+**/graph/
+
+# Git
+.gitignore
